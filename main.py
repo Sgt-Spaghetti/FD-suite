@@ -46,7 +46,9 @@ class FD():
 		self.trimmed = False
 		self.has_fit: bool = False
 		self.baseline = False
+		self.reference = False
 		self.is_baseline_subtracted = False
+		self.is_force_scaled = False
 		self.current_plotted_trimmed: str = None # Holds "extension" or "retraction" keywords
 
 		self.dataframe_extension = pd.DataFrame({"Force_Extension": [], "Distance_Extension": [], "Time_Extension": []})
@@ -646,6 +648,9 @@ def fit() -> None:
 def mark_baseline() -> None:
 	GLOBALVARS.active_file.baseline = True
 
+def mark_reference() -> None:
+	GLOBALVARS.active_file.reference = True
+
 def baseline_correction():
 	minimum = 100
 	maximum = 0
@@ -680,7 +685,88 @@ def baseline_correction():
 		curve.subtract_baseline(baseline_x[:-1], baseline_y)
 
 	replot_canvas()
+
+# For every reference curve, assume the curve is trimmed nicely to have one extension ready for fitting
+# fit every reference curve, and average each Lc. From the average Lc, convert each curve to Lc space.
+# Find the force at critical Lc from the full curve (equivalent to 22.15um in lambda), the force at this
+# critical Lc should be 110pN. Get a correcton factor for each curve. Average the correction factors for
+# each curve, then apply the averaged correction factors to every selected curve (via processed_data).
+def auto_force_scale() -> None:
+
+	reference_curves = []
+	contour_lengths = []
+	for curve in GLOBALVARS.selected_files:
+		if curve.reference == True:
+			reference_curves.append(curve)
+
+	for curve in reference_curves:
+		if curve.trimmed == False: # if the curve is not nicely trimmed already, attempt to do it automatically. Copy of the function before.
+			if curve in GLOBALVARS.selected_files:	
+				inflection_point = 0
+				max_force = 0
+				force_cap = float(entry_ymax.get())
+				for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
+					if curve.processed_dataframe["Processed_Force"][i] > max_force and curve.processed_dataframe["Processed_Force"][i] > curve.processed_dataframe["Processed_Force"][i+1]:	
+						max_force = curve.processed_dataframe["Processed_Force"][i]
+						inflection_point = i
+				force_ext = []
+				dist_ext= []
+				time_ext = []
+				force_ret = []
+				dist_ret = []
+				time_ret = []
+
+				for i in range(len(curve.processed_dataframe["Processed_Force"][0:inflection_point])):
+					if curve.processed_dataframe["Processed_Force"][i] < force_cap:
+						force_ext.append(curve.processed_dataframe["Processed_Force"][i])
+						time_ext.append(curve.processed_dataframe["Processed_Time"][i])
+						dist_ext.append(curve.processed_dataframe["Processed_Distance"][i])
+				for i in range(len(curve.processed_dataframe["Processed_Force"][inflection_point+1:])):
+					if curve.processed_dataframe["Processed_Force"][inflection_point+i+1] < force_cap:
+						force_ret.append(curve.processed_dataframe["Processed_Force"][inflection_point+i+1])
+						time_ret.append(curve.processed_dataframe["Processed_Time"][inflection_point+i+1])
+						dist_ret.append(curve.processed_dataframe["Processed_Distance"][inflection_point+i+1])
+
+				curve.dataframe_extension = pd.DataFrame({"Force_Extension": force_ext, "Distance_Extension": dist_ext, "Time_Extension": time_ext})
+				curve.dataframe_retraction = pd.DataFrame({"Force_Retraction": force_ret, "Distance_Retraction": dist_ret, "Time_Retraction": time_ret})
+
+				curve.trimmed=True
+				curve.current_plotted_trimmed="extension"
+
+		if curve.has_fit == False: # if the curve is not already fit, then fit the trimmed data.
+			fit_result = fit_eOdijk_F0(curve.dataframe_extension["Distance_Extension"], curve.dataframe_extension["Force_Extension"])
+			curve.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": [], "Fit_Distance_Extension": []})
+			curve.fit_dataframe_extension["Fit_Force_Extension"] = fit_result[2]
+			curve.fit_dataframe_extension["Fit_Distance_Extension"] = GLOBALVARS.active_file.dataframe_extension["Distance_Extension"]
+			curve.fit_parameters["Lp_ext"] = [fit_result[0][0], fit_result[1][0]]
+			curve.fit_parameters["Lc_ext"] = [fit_result[0][1], fit_result[1][1]]
+			curve.fit_parameters["S_ext"] = [fit_result[0][2], fit_result[1][2]]
+			curve.fit_parameters["F0_ext"] = [fit_result[0][3], fit_result[1][3]]
+
+			curve.has_fit = True
+			curve.plot()
+		contour_lengths.append(curve.fit_parameters["Lc_ext"][0])
+
+	mean_Lc = np.mean(contour_lengths)
+	force_corrections = []
 	
+	for curve in reference_curves:
+		Lc_space = curve.processed_dataframe["Processed_Distance"] / mean_Lc # Normalise to Lc space
+		critical_Lc = 1.342424 # lambda Lc=16.5um. 22.15um = 1.342424x Lc. 1.342424 LC = 110 pN.
+		force_at_critical_lc = 1
+		for i in range(len(Lc_space)-1):
+			if Lc_space[i] <= critical_Lc and Lc_space[i+1] > critical_Lc:
+				force_at_critical_lc = (curve.processed_dataframe["Processed_Force"][i] + curve.processed_dataframe["Processed_Force"][i+1])/2
+		force_correction_factor = 110/force_at_critical_lc
+		force_corrections.append(force_correction_factor)
+
+	mean_force_correction = np.mean(force_corrections)
+
+	# apply the force correction to every selected curve.
+	for curve in GLOBALVARS.selected_files:
+		curve.processed_dataframe["Processed_Force"] = curve.processed_dataframe["Processed_Force"] * mean_force_correction
+	replot_canvas()
+			
 
 def expand_graph() -> None:
 	replot_canvas(True)
@@ -744,8 +830,9 @@ selection_menu.add_command(label='Deselect Highlighted Curves',command=deselect_
 # Create the selection options
 calibration_menu = Menu(menubar)
 selection_menu.add_command(label='Mark Curve as Baseline',command=mark_baseline)
-selection_menu.add_command(label='Mark Curve as Torsionally Constrained',command=mark_baseline)
+selection_menu.add_command(label='Mark Curve as Reference',command=mark_reference)
 calibration_menu.add_command(label='Subtract Baseline',command=baseline_correction)
+calibration_menu.add_command(label='Auto Force Scale',command=auto_force_scale)
 calibration_menu.add_command(label='Calculate Supercoiling Density',command=baseline_correction)
 
 # Add the dropdowns to the menubar
