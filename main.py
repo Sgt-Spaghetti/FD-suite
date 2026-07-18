@@ -42,7 +42,8 @@ class FD():
 		self.plot_time = False
 		self.xmin: float = 0
 		self.xmax: float = 0
-		self.ymax: bool = 0
+		self.ymin: float = 0
+		self.ymax: float = 0
 		self.trimmed = False
 		self.has_fit: bool = False
 		self.baseline = False
@@ -94,7 +95,7 @@ class FD():
 				selected = True
 		if self.trimmed == False:
 			if selected == True:
-				self.plot_scatter_processed_data(self.xmin, self.xmax, self.ymax)
+				self.plot_scatter_processed_data(self.xmin, self.xmax, self.ymin, self.ymax)
 			else:
 				self.plot_scatter_raw_data()
 		else:
@@ -133,7 +134,7 @@ class FD():
 
 	# Plot the data which might have been baseline subtracted or pixel corrected
 	# Therefore, use the "processed_dataframe" dataset.
-	def plot_scatter_processed_data(self, xmin=0, xmax=0, ymax=0) -> None:
+	def plot_scatter_processed_data(self, xmin=0, xmax=0, ymin=0, ymax=0) -> None:
 		window.update()
 		window.update_idletasks()
 		width: int = canvas_graph_display.winfo_width()
@@ -167,8 +168,11 @@ class FD():
 				ax[0].axvline(xmax, color="g")
 				ax[1].axvline(xmax, color="g")
 				ax[2].axvline(xmax, color="g")
-		if ymax != 0:
+		if ymax > 0:
 			ax[0].axhline(ymax, c="black")
+		if ymin > 0:
+			ax[0].axhline(ymin, c="blue")
+
 		ax[1].axhline(0, c="black")
 		ax[2].axhline(0, c="black")
 		ax[0].set_ylabel("Force (pN)")
@@ -421,15 +425,29 @@ def toggle_time() -> None:
 def slider_max_release(event) -> None:
 	if GLOBALVARS.active_file != None:
 		GLOBALVARS.active_file.xmax = scale_select_max_time.get()
+		GLOBALVARS.active_file.ymin = float(entry_ymin.get())
 		GLOBALVARS.active_file.ymax = float(entry_ymax.get())
+		entry_xmax.delete(0, tk.END)
+		entry_xmax.insert(0, str(GLOBALVARS.active_file.xmax))
 		GLOBALVARS.active_file.plot()
 		update_canvas()
+
 def slider_min_release(event) -> None:
 	if GLOBALVARS.active_file != None:
 		GLOBALVARS.active_file.xmin = scale_select_min_time.get()
+		GLOBALVARS.active_file.ymin = float(entry_ymin.get())
 		GLOBALVARS.active_file.ymax = float(entry_ymax.get())
-		GLOBALVARS.active_file.plot()
-		update_canvas()
+		entry_xmin.delete(0, tk.END)
+		entry_xmin.insert(0, str(GLOBALVARS.active_file.xmin))
+		replot_canvas()
+
+def update_trim_settings() -> None:
+	if GLOBALVARS.active_file != None:
+		GLOBALVARS.active_file.xmin = float(entry_xmin.get())
+		GLOBALVARS.active_file.xmax = float(entry_xmax.get())
+		GLOBALVARS.active_file.ymin = float(entry_ymin.get())
+		GLOBALVARS.active_file.ymax = float(entry_ymax.get())
+		replot_canvas()
 
 def update_canvas() -> None:
 	GLOBALVARS.graph_image = tk.PhotoImage(file="TEMP_PLOT.png")
@@ -859,12 +877,15 @@ frame_graphing_windows = tk.Frame(master=window)
 frame_graphing_windows.grid(row=1, column=1, sticky=[tk.N, tk.E, tk.S, tk.W])
 frame_input_buttons = tk.Frame(master=window)
 frame_input_buttons.grid(row=2, column=1)
-frame_graphing_windows.columnconfigure(0, weight=0)
-frame_graphing_windows.columnconfigure(1, weight=1)
-frame_graphing_windows.columnconfigure(2, weight=0)
+frame_graphing_windows.columnconfigure(0, weight=1)
+frame_graphing_windows.columnconfigure(1, weight=5)
+frame_graphing_windows.columnconfigure(2, weight=5)
+frame_graphing_windows.columnconfigure(3, weight=5)
+frame_graphing_windows.columnconfigure(4, weight=1)
 frame_graphing_windows.rowconfigure(0, weight=1)
 frame_graphing_windows.rowconfigure(1, weight=0)
 frame_graphing_windows.rowconfigure(2, weight=0)
+frame_graphing_windows.rowconfigure(3, weight=0)
 
 title_label = tk.Label(master=frame_title_manager, text="DEMO")
 title_label.pack()
@@ -924,21 +945,38 @@ tk.Button(master=frame_optical_settings, text="Update", command=update_optic_set
 
 # Canvas to display graphs
 canvas_graph_display = tk.Canvas(master=frame_graphing_windows, bg="#856ff8")
-canvas_graph_display.grid(row=0, column=0, columnspan=3, sticky=[tk.N, tk.E, tk.S, tk.W])
+canvas_graph_display.grid(row=0, column=0, columnspan=5, sticky=[tk.N, tk.E, tk.S, tk.W])
 
 # FD-time cutoff scrollers
 tk.Label(master=frame_graphing_windows, text="Xmin: ").grid(row=1, column=0, sticky=tk.S)
 scale_select_min_time = Scale(master=frame_graphing_windows, orient=HORIZONTAL, resolution=0.01)
-scale_select_min_time.grid(row=1, column=1, sticky=[tk.E, tk.W])
+scale_select_min_time.grid(row=1, column=1, columnspan=4, sticky=[tk.E, tk.W])
 tk.Label(master=frame_graphing_windows, text="Xmax: ").grid(row=2, column=0, sticky=tk.S)
 scale_select_min_time.bind("<ButtonRelease-1>", slider_min_release)
 scale_select_max_time = Scale(master=frame_graphing_windows, orient=HORIZONTAL, resolution=0.01)
-scale_select_max_time.grid(row=2, column=1, sticky=[tk.E, tk.W])
+scale_select_max_time.grid(row=2, column=1, columnspan=4,sticky=[tk.E, tk.W])
 scale_select_max_time.bind("<ButtonRelease-1>", slider_max_release)
-tk.Label(master=frame_graphing_windows, text="Ymax:").grid(row=1, column=2, sticky=tk.S)
-entry_ymax = tk.Entry(master=frame_graphing_windows,width=3)
+
+tk.Label(master=frame_graphing_windows, text="Xmin:").grid(row=3, column=0, sticky=tk.S)
+entry_xmin = tk.Entry(master=frame_graphing_windows,width=6)
+entry_xmin.insert(0,"0")
+entry_xmin.grid(row=4, column=0)
+tk.Label(master=frame_graphing_windows, text="Xmax:").grid(row=3, column=1, sticky=tk.S)
+entry_xmax = tk.Entry(master=frame_graphing_windows,width=6)
+entry_xmax.insert(0,"0")
+entry_xmax.grid(row=4,column=1) 
+
+
+tk.Label(master=frame_graphing_windows, text="Ymin:").grid(row=3, column=2, sticky=tk.S)
+entry_ymin = tk.Entry(master=frame_graphing_windows,width=6)
+entry_ymin.insert(0,"-5")
+entry_ymin.grid(row=4, column=2)
+tk.Label(master=frame_graphing_windows, text="Ymax:").grid(row=3, column=3, sticky=tk.S)
+entry_ymax = tk.Entry(master=frame_graphing_windows,width=6)
 entry_ymax.insert(0,"30")
-entry_ymax.grid(row=2, column=2)
+entry_ymax.grid(row=4, column=3)
+
+tk.Button(master=frame_graphing_windows, text="Update", command=update_trim_settings).grid(row=4, column=4)
 
 # Buttons to set correction factors
 button_1 = Button(master=frame_input_buttons, text="Toggle Time", command=toggle_time)
