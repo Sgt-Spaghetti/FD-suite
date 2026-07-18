@@ -737,14 +737,13 @@ def auto_force_scale() -> None:
 			fit_result = fit_eOdijk_F0(curve.dataframe_extension["Distance_Extension"], curve.dataframe_extension["Force_Extension"])
 			curve.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": [], "Fit_Distance_Extension": []})
 			curve.fit_dataframe_extension["Fit_Force_Extension"] = fit_result[2]
-			curve.fit_dataframe_extension["Fit_Distance_Extension"] = GLOBALVARS.active_file.dataframe_extension["Distance_Extension"]
+			curve.fit_dataframe_extension["Fit_Distance_Extension"] = curve.dataframe_extension["Distance_Extension"]
 			curve.fit_parameters["Lp_ext"] = [fit_result[0][0], fit_result[1][0]]
 			curve.fit_parameters["Lc_ext"] = [fit_result[0][1], fit_result[1][1]]
 			curve.fit_parameters["S_ext"] = [fit_result[0][2], fit_result[1][2]]
 			curve.fit_parameters["F0_ext"] = [fit_result[0][3], fit_result[1][3]]
 
 			curve.has_fit = True
-			curve.plot()
 		contour_lengths.append(curve.fit_parameters["Lc_ext"][0])
 
 	mean_Lc = np.mean(contour_lengths)
@@ -765,6 +764,8 @@ def auto_force_scale() -> None:
 	# apply the force correction to every selected curve.
 	for curve in GLOBALVARS.selected_files:
 		curve.processed_dataframe["Processed_Force"] = curve.processed_dataframe["Processed_Force"] * mean_force_correction
+		curve.is_force_scaled = True
+
 	replot_canvas()
 			
 
@@ -774,7 +775,7 @@ def expand_graph() -> None:
 def export_data() -> None:
 	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": []}
 	for file in GLOBALVARS.selected_files:
-		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters], axis = 1)
+		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"is_force_scaled": [file.is_force_scaled]})], axis = 1)
 		output_data.to_csv(os.path.join(GLOBALVARS.output_directory, file.name+".csv"), index=False)
 
 		if file.has_fit == True:
