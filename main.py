@@ -459,6 +459,18 @@ def replot_canvas(expanded_graph = False) -> None:
 		GLOBALVARS.graph_image = tk.PhotoImage(file="TEMP_PLOT.png")
 		canvas_graph_display.create_image(0,0,image=GLOBALVARS.graph_image, anchor="nw")
 
+		if GLOBALVARS.active_file.has_fit == True:
+			if GLOBALVARS.active_file.current_plotted_trimmed == "extension":
+				Lp_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["Lp_ext"][0])))
+				Lc_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["Lc_ext"][0])))
+				S_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["S_ext"][0])))
+				F0_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["F0_ext"][0])))
+			else:
+				Lp_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["Lp_ret"][0])))
+				Lc_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["Lc_ret"][0])))
+				S_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["S_ret"][0])))
+				F0_display.config(text=str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["F0_ret"][0])))
+
 def window_resize(event) -> None:
 	replot_canvas()
 
@@ -877,11 +889,15 @@ frame_graphing_windows = tk.Frame(master=window)
 frame_graphing_windows.grid(row=1, column=1, sticky=[tk.N, tk.E, tk.S, tk.W])
 frame_input_buttons = tk.Frame(master=window)
 frame_input_buttons.grid(row=2, column=1)
-frame_graphing_windows.columnconfigure(0, weight=1)
-frame_graphing_windows.columnconfigure(1, weight=5)
-frame_graphing_windows.columnconfigure(2, weight=5)
-frame_graphing_windows.columnconfigure(3, weight=5)
+frame_graphing_windows.columnconfigure(0, weight=0)
+frame_graphing_windows.columnconfigure(1, weight=1)
+frame_graphing_windows.columnconfigure(2, weight=1)
+frame_graphing_windows.columnconfigure(3, weight=1)
 frame_graphing_windows.columnconfigure(4, weight=1)
+frame_graphing_windows.columnconfigure(5, weight=1)
+frame_graphing_windows.columnconfigure(6, weight=1)
+frame_graphing_windows.columnconfigure(7, weight=1)
+frame_graphing_windows.columnconfigure(8, weight=0)
 frame_graphing_windows.rowconfigure(0, weight=1)
 frame_graphing_windows.rowconfigure(1, weight=0)
 frame_graphing_windows.rowconfigure(2, weight=0)
@@ -945,38 +961,38 @@ tk.Button(master=frame_optical_settings, text="Update", command=update_optic_set
 
 # Canvas to display graphs
 canvas_graph_display = tk.Canvas(master=frame_graphing_windows, bg="#856ff8")
-canvas_graph_display.grid(row=0, column=0, columnspan=5, sticky=[tk.N, tk.E, tk.S, tk.W])
+canvas_graph_display.grid(row=0, column=0, columnspan=9, sticky=[tk.N, tk.E, tk.S, tk.W])
 
 # FD-time cutoff scrollers
 tk.Label(master=frame_graphing_windows, text="Xmin: ").grid(row=1, column=0, sticky=tk.S)
 scale_select_min_time = Scale(master=frame_graphing_windows, orient=HORIZONTAL, resolution=0.01)
-scale_select_min_time.grid(row=1, column=1, columnspan=4, sticky=[tk.E, tk.W])
+scale_select_min_time.grid(row=1, column=1, columnspan=8, sticky=[tk.E, tk.W])
 tk.Label(master=frame_graphing_windows, text="Xmax: ").grid(row=2, column=0, sticky=tk.S)
 scale_select_min_time.bind("<ButtonRelease-1>", slider_min_release)
 scale_select_max_time = Scale(master=frame_graphing_windows, orient=HORIZONTAL, resolution=0.01)
-scale_select_max_time.grid(row=2, column=1, columnspan=4,sticky=[tk.E, tk.W])
+scale_select_max_time.grid(row=2, column=1, columnspan=8,sticky=[tk.E, tk.W])
 scale_select_max_time.bind("<ButtonRelease-1>", slider_max_release)
 
-tk.Label(master=frame_graphing_windows, text="Xmin:").grid(row=3, column=0, sticky=tk.S)
+tk.Label(master=frame_graphing_windows, text="Xmin:").grid(row=3, column=0, sticky=tk.E)
 entry_xmin = tk.Entry(master=frame_graphing_windows,width=6)
 entry_xmin.insert(0,"0")
-entry_xmin.grid(row=4, column=0)
-tk.Label(master=frame_graphing_windows, text="Xmax:").grid(row=3, column=1, sticky=tk.S)
+entry_xmin.grid(row=3, column=1, sticky=tk.W)
+tk.Label(master=frame_graphing_windows, text="Xmax:").grid(row=3, column=2, sticky=tk.E)
 entry_xmax = tk.Entry(master=frame_graphing_windows,width=6)
 entry_xmax.insert(0,"0")
-entry_xmax.grid(row=4,column=1) 
+entry_xmax.grid(row=3,column=3, sticky=tk.W)
 
 
-tk.Label(master=frame_graphing_windows, text="Ymin:").grid(row=3, column=2, sticky=tk.S)
+tk.Label(master=frame_graphing_windows, text="Ymin:").grid(row=3, column=4, sticky=tk.E)
 entry_ymin = tk.Entry(master=frame_graphing_windows,width=6)
 entry_ymin.insert(0,"-5")
-entry_ymin.grid(row=4, column=2)
-tk.Label(master=frame_graphing_windows, text="Ymax:").grid(row=3, column=3, sticky=tk.S)
+entry_ymin.grid(row=3, column=5, sticky=tk.W)
+tk.Label(master=frame_graphing_windows, text="Ymax:").grid(row=3, column=6, sticky=tk.E)
 entry_ymax = tk.Entry(master=frame_graphing_windows,width=6)
 entry_ymax.insert(0,"30")
-entry_ymax.grid(row=4, column=3)
+entry_ymax.grid(row=3, column=7, sticky=tk.W)
 
-tk.Button(master=frame_graphing_windows, text="Update", command=update_trim_settings).grid(row=4, column=4)
+tk.Button(master=frame_graphing_windows, text="Update", command=update_trim_settings).grid(row=3, column=8)
 
 # Buttons to set correction factors
 button_1 = Button(master=frame_input_buttons, text="Toggle Time", command=toggle_time)
@@ -989,29 +1005,37 @@ tk.Checkbutton(master=frame_input_buttons, text="Display Full", variable=variabl
 tk.Radiobutton(master=frame_input_buttons, text="Set Extension", value = "extension", variable=variable_radio_buttons, command=radio_button_select).grid(row=1, column=1)
 tk.Radiobutton(master=frame_input_buttons, text="Set Retraction", value="retraction", variable=variable_radio_buttons, command=radio_button_select).grid(row=1, column = 2)
 
-button_4 = Button(master=frame_input_buttons, text="Fit", command=fit)
-button_4.grid(row=2, column=1)
-
-button_5 = Button(master=frame_input_buttons, text="Expand Graph", command=expand_graph)
-button_5.grid(row=3, column=1)
+Enlarge_Button = Button(master=frame_input_buttons, text="Expand Graph", command=expand_graph)
+Enlarge_Button.grid(row=0, column=3)
 
 
-tk.Label(master=frame_input_buttons, text="Lp:").grid(row=4, column=0, sticky=tk.S)
+tk.Label(master=frame_input_buttons, text="Lp:").grid(row=2, column=0, sticky=tk.E)
 Lp_entry = tk.Entry(master=frame_input_buttons,width=6)
 Lp_entry.insert(0,"50")
-Lp_entry.grid(row=5, column=0)
-tk.Label(master=frame_input_buttons, text="Lc:").grid(row=4, column=1, sticky=tk.S)
+Lp_entry.grid(row=2, column=1)
+Lp_display = tk.Label(master=frame_input_buttons, text="")
+Lp_display.grid(row=2, column=2, sticky=tk.EW)
+tk.Label(master=frame_input_buttons, text="Lc:").grid(row=3, column=0, sticky=tk.E)
 Lc_entry = tk.Entry(master=frame_input_buttons,width=6)
 Lc_entry.insert(0,"16.5")
-Lc_entry.grid(row=5, column=1)
-tk.Label(master=frame_input_buttons, text="S:").grid(row=4, column=2, sticky=tk.S)
+Lc_entry.grid(row=3, column=1)
+Lc_display = tk.Label(master=frame_input_buttons, text="")
+Lc_display.grid(row=3, column=2, sticky=tk.EW)
+tk.Label(master=frame_input_buttons, text="S:").grid(row=4, column=0, sticky=tk.E)
 S_entry = tk.Entry(master=frame_input_buttons,width=6)
 S_entry.insert(0,"1500")
-S_entry.grid(row=5, column=2)
-tk.Label(master=frame_input_buttons, text="F0:").grid(row=4, column=3, sticky=tk.S)
+S_entry.grid(row=4, column=1)
+S_display = tk.Label(master=frame_input_buttons, text="")
+S_display.grid(row=4, column=2, sticky=tk.EW)
+tk.Label(master=frame_input_buttons, text="F0:").grid(row=5, column=0, sticky=tk.E)
 F0_entry = tk.Entry(master=frame_input_buttons,width=6)
 F0_entry.insert(0,"0")
-F0_entry.grid(row=5, column=3)
+F0_entry.grid(row=5, column=1)
+F0_display = tk.Label(master=frame_input_buttons, text="")
+F0_display.grid(row=5, column=2, sticky=tk.EW)
+
+Fit_Button = Button(master=frame_input_buttons, text="Fit", command=fit)
+Fit_Button.grid(row=8, column=1)
 
 
 
