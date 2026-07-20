@@ -17,6 +17,12 @@ The program is distributed on GitHub as a single python file, making the distrib
 cd ~/path/to/convenient/directory
 git clone https://github.com/Sgt-Spaghetti/FD-suite.git
 ```
+This way, whenever there is a new update to the program, it can easily be downloaded:
+```
+cd ~/path/to/program
+git pull https://github.com/Sgt-Spaghetti/FD-suite.git
+```
+
 Alternatively, the file can be downloaded from the GitHub webpage as a .zip folder, or the contents of the file can be copied and pasted into a local .py file.
 
 ## Launching
