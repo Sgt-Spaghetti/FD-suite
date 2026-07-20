@@ -15,7 +15,7 @@ The following python packages should be installed on the host system (or virtual
 The program is distributed on GitHub as a single python file, making the distribution very simple. The best way to download the program is using a local Git client. Simply open a terminal and navigate to a convenient directory before cloning the git repository. On a Linux distribution, this can be accomplished with:
 ```
 cd ~/path/to/convenient/directory
-git clone "url"
+git clone https://github.com/Sgt-Spaghetti/FD-suite.git
 ```
 Alternatively, the file can be downloaded from the GitHub webpage as a .zip folder, or the contents of the file can be copied and pasted into a local .py file.
 
