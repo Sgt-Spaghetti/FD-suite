@@ -551,7 +551,7 @@ def manual_trim_data() -> None:
 		if str(variable_radio_buttons.get()) == "extension":
 			if GLOBALVARS.active_file.plot_time == True:
 				for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Time"])):
-					if GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i] >= GLOBALVARS.active_file.xmin and GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i] <= GLOBALVARS.active_file.xmax and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] <= GLOBALVARS.active_file.ymax:
+					if GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i] >= GLOBALVARS.active_file.xmin and GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i] <= GLOBALVARS.active_file.xmax and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] <= GLOBALVARS.active_file.ymax and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] >= GLOBALVARS.active_file.ymin:
 						trimmed_force.append(GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i])
 						trimmed_time.append(GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i])
 						trimmed_dist.append(GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i])
@@ -562,7 +562,7 @@ def manual_trim_data() -> None:
 
 			else:
 				for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Distance"])):
-					if GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i] >= GLOBALVARS.active_file.xmin and GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i] <= GLOBALVARS.active_file.xmax and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] <= GLOBALVARS.active_file.ymax:
+					if GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i] >= GLOBALVARS.active_file.xmin and GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i] <= GLOBALVARS.active_file.xmax and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] <= GLOBALVARS.active_file.ymax and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] >= GLOBALVARS.active_file.ymin:
 						trimmed_force.append(GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i])
 						trimmed_time.append(GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i])
 						trimmed_dist.append(GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i])
@@ -822,6 +822,50 @@ def export_data() -> None:
 	out = pd.DataFrame(fit_params)
 	out.to_csv(os.path.join(GLOBALVARS.output_directory,"FIT_PARAMETERS.csv"), index=False)
 
+def auto_fc() -> None:
+	if GLOBALVARS.active_file != None:
+		xmin = GLOBALVARS.active_file.xmin
+		xmax = GLOBALVARS.active_file.xmax
+		ixmin = 0
+		ixmax = 0
+		if GLOBALVARS.active_file.plot_time == True:
+			for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Time"])-1):
+				if GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i] < xmin and GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i+1] >= xmin:
+					ixmin = i
+				if GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i] < xmax and GLOBALVARS.active_file.processed_dataframe["Processed_Time"][i+1] >= xmax :
+					ixmax = i
+			fc = 0
+			ifc = 0
+			for i in range(ixmin, ixmax):
+				if abs(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][i]) >= fc:
+					fc = abs(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][i])
+					ifc = i
+
+			if GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][ifc] > 0:
+				GLOBALVARS.active_file.xmax = GLOBALVARS.active_file.first_derivative_dataframe["Time"][ifc]
+			else:
+				GLOBALVARS.active_file.xmin = GLOBALVARS.active_file.first_derivative_dataframe["Time"][ifc]
+
+		else:
+			for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Distance"])-1):
+				if GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i] < xmin and GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i+1] >= xmin:
+					ixmin = i
+				if GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i] < xmax and GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][i+1] >= xmax :
+					ixmax = i
+			fc = 0
+			ifc = 0
+			for i in range(ixmin, ixmax):
+				if abs(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][i]) >= fc:
+					fc = GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][i]
+					ifc = i
+
+			if GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][ifc] > 0:
+				GLOBALVARS.active_file.xmax = GLOBALVARS.active_file.first_derivative_dataframe["Distance"][ifc]
+			else:
+				GLOBALVARS.active_file.xmin = GLOBALVARS.active_file.first_derivative_dataframe["Distance"][ifc]
+
+		
+		replot_canvas()
 '''
  |------------------|
  |  GUI management  |
@@ -885,23 +929,31 @@ frame_file_managers.rowconfigure(2, weight=0)
 frame_file_managers.rowconfigure(3, weight=0)
 frame_file_managers.rowconfigure(4, weight=0)
 
-frame_graphing_windows = tk.Frame(master=window)
-frame_graphing_windows.grid(row=1, column=1, sticky=[tk.N, tk.E, tk.S, tk.W])
-frame_input_buttons = tk.Frame(master=window)
-frame_input_buttons.grid(row=2, column=1)
+frame_graphing_windows = tk.Frame(master=window, borderwidth=1, relief="solid")
+frame_graphing_windows.grid(row=1, column=1, sticky=[tk.N, tk.S, tk.E, tk.W], padx=2, ipadx=2)
 frame_graphing_windows.columnconfigure(0, weight=0)
 frame_graphing_windows.columnconfigure(1, weight=1)
-frame_graphing_windows.columnconfigure(2, weight=1)
-frame_graphing_windows.columnconfigure(3, weight=1)
-frame_graphing_windows.columnconfigure(4, weight=1)
-frame_graphing_windows.columnconfigure(5, weight=1)
-frame_graphing_windows.columnconfigure(6, weight=1)
-frame_graphing_windows.columnconfigure(7, weight=1)
-frame_graphing_windows.columnconfigure(8, weight=0)
 frame_graphing_windows.rowconfigure(0, weight=1)
 frame_graphing_windows.rowconfigure(1, weight=0)
 frame_graphing_windows.rowconfigure(2, weight=0)
 frame_graphing_windows.rowconfigure(3, weight=0)
+
+
+frame_input_buttons = tk.Frame(master=window)
+frame_input_buttons.grid(row=2, column=1)
+
+frame_graph_settings = tk.Frame(master=frame_graphing_windows, borderwidth=2, relief="groove")
+frame_graph_settings.grid(row=3, column=0, columnspan=2, sticky=tk.S, pady=4, ipady=4)
+frame_graph_settings.columnconfigure(0, weight=0)
+frame_graph_settings.columnconfigure(1, weight=1)
+frame_graph_settings.columnconfigure(2, weight=1)
+frame_graph_settings.columnconfigure(3, weight=1)
+frame_graph_settings.columnconfigure(4, weight=1)
+frame_graph_settings.columnconfigure(5, weight=1)
+frame_graph_settings.columnconfigure(6, weight=1)
+frame_graph_settings.columnconfigure(7, weight=1)
+frame_graph_settings.columnconfigure(8, weight=0)
+frame_graph_settings.rowconfigure(0, weight=1)
 
 title_label = tk.Label(master=frame_title_manager, text="DEMO")
 title_label.pack()
@@ -961,38 +1013,39 @@ tk.Button(master=frame_optical_settings, text="Update", command=update_optic_set
 
 # Canvas to display graphs
 canvas_graph_display = tk.Canvas(master=frame_graphing_windows, bg="#856ff8")
-canvas_graph_display.grid(row=0, column=0, columnspan=9, sticky=[tk.N, tk.E, tk.S, tk.W])
+canvas_graph_display.grid(row=0, column=0, columnspan=2, sticky=[tk.N, tk.E, tk.S, tk.W])
 
 # FD-time cutoff scrollers
-tk.Label(master=frame_graphing_windows, text="Xmin: ").grid(row=1, column=0, sticky=tk.S)
+tk.Label(master=frame_graphing_windows, text="Xmin: ").grid(row=1, column=0, sticky=tk.SW, padx=4)
 scale_select_min_time = Scale(master=frame_graphing_windows, orient=HORIZONTAL, resolution=0.01)
-scale_select_min_time.grid(row=1, column=1, columnspan=8, sticky=[tk.E, tk.W])
-tk.Label(master=frame_graphing_windows, text="Xmax: ").grid(row=2, column=0, sticky=tk.S)
+scale_select_min_time.grid(row=1, column=1, sticky=[tk.E, tk.W, tk.S])
+tk.Label(master=frame_graphing_windows, text="Xmax: ").grid(row=2, column=0, sticky=tk.SW, padx=4)
 scale_select_min_time.bind("<ButtonRelease-1>", slider_min_release)
 scale_select_max_time = Scale(master=frame_graphing_windows, orient=HORIZONTAL, resolution=0.01)
-scale_select_max_time.grid(row=2, column=1, columnspan=8,sticky=[tk.E, tk.W])
+scale_select_max_time.grid(row=2, column=1,sticky=[tk.E, tk.W, tk.S])
 scale_select_max_time.bind("<ButtonRelease-1>", slider_max_release)
 
-tk.Label(master=frame_graphing_windows, text="Xmin:").grid(row=3, column=0, sticky=tk.E)
-entry_xmin = tk.Entry(master=frame_graphing_windows,width=6)
+tk.Label(master=frame_graph_settings, text="Xmin:").grid(row=0, column=0, sticky=tk.E)
+entry_xmin = tk.Entry(master=frame_graph_settings,width=6)
 entry_xmin.insert(0,"0")
-entry_xmin.grid(row=3, column=1, sticky=tk.W)
-tk.Label(master=frame_graphing_windows, text="Xmax:").grid(row=3, column=2, sticky=tk.E)
-entry_xmax = tk.Entry(master=frame_graphing_windows,width=6)
+entry_xmin.grid(row=0, column=1, sticky=tk.W)
+tk.Label(master=frame_graph_settings, text="Xmax:").grid(row=0, column=2, sticky=tk.E)
+entry_xmax = tk.Entry(master=frame_graph_settings,width=6)
 entry_xmax.insert(0,"0")
-entry_xmax.grid(row=3,column=3, sticky=tk.W)
+entry_xmax.grid(row=0,column=3, sticky=tk.W)
 
 
-tk.Label(master=frame_graphing_windows, text="Ymin:").grid(row=3, column=4, sticky=tk.E)
-entry_ymin = tk.Entry(master=frame_graphing_windows,width=6)
+tk.Label(master=frame_graph_settings, text="Ymin:").grid(row=0, column=4, sticky=tk.E)
+entry_ymin = tk.Entry(master=frame_graph_settings,width=6)
 entry_ymin.insert(0,"-5")
-entry_ymin.grid(row=3, column=5, sticky=tk.W)
-tk.Label(master=frame_graphing_windows, text="Ymax:").grid(row=3, column=6, sticky=tk.E)
-entry_ymax = tk.Entry(master=frame_graphing_windows,width=6)
+entry_ymin.grid(row=0, column=5, sticky=tk.W)
+tk.Label(master=frame_graph_settings, text="Ymax:").grid(row=0, column=6, sticky=tk.E)
+entry_ymax = tk.Entry(master=frame_graph_settings,width=6)
 entry_ymax.insert(0,"30")
-entry_ymax.grid(row=3, column=7, sticky=tk.W)
+entry_ymax.grid(row=0, column=7, sticky=tk.W)
 
-tk.Button(master=frame_graphing_windows, text="Update", command=update_trim_settings).grid(row=3, column=8)
+tk.Button(master=frame_graph_settings, text="Fc", command=auto_fc).grid(row=0, column=8)
+tk.Button(master=frame_graph_settings, text="Update", command=update_trim_settings).grid(row=0, column=9, padx=4)
 
 # Buttons to set correction factors
 button_1 = Button(master=frame_input_buttons, text="Toggle Time", command=toggle_time)
