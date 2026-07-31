@@ -641,7 +641,28 @@ def fit_eOdijk_F0(data_x, data_y) -> list:
 				16*kT*(Lp**5)*(S**5)*(Lc**12)))**(1/3)
 		return output + F0
 
-	parameters, covariance = scipy.optimize.curve_fit(eOdjik_force_offset,np.array(data_x),np.array(data_y), (float(Lp_entry.get()), float(Lc_entry.get()), float(S_entry.get()), float(F0_entry.get())))
+
+	# Allow parameter "fixing" by definding a new lambda function with that as a constant.
+	parameters_to_fix: list[bool] = [variable_lp_fix.get(),variable_lc_fix.get(),variable_s_fix.get(),variable_f0_fix.get()]
+
+	if parameters_to_fix[0] == True:
+		fixed_lp = lambda d, Lp, Lc, S, F0: eOdjik_force_offset(d, float(Lp_entry.get()), Lc, S, F0)
+	else:
+		fixed_lp = lambda d, Lp, Lc, S, F0: eOdjik_force_offset(d, Lp, Lc, S, F0)
+	if parameters_to_fix[1] == True:
+		fixed_lc = lambda d, Lp, Lc, S, F0: fixed_lp(d, Lp, float(Lc_entry.get()), S, F0)
+	else:
+		fixed_lc = lambda d, Lp, Lc, S, F0: fixed_lp(d, Lp, Lc, S, F0)
+	if parameters_to_fix[2] == True:
+		fixed_s = lambda d, Lp, Lc, S, F0: fixed_lc(d, Lp, Lc, float(S_entry.get()), F0)
+	else:
+		fixed_s = lambda d, Lp, Lc, S, F0: fixed_lc(d, Lp, Lc, S, F0)
+	if parameters_to_fix[3] == True:
+		fixed_f0 = lambda d, Lp, Lc, S, F0: fixed_s(d, Lp, Lc, S, float(F0_entry.get()))
+	else:
+		fixed_f0 = lambda d, Lp, Lc, S, F0: fixed_s(d, Lp, Lc, S, F0)
+
+	parameters, covariance = scipy.optimize.curve_fit(fixed_f0,np.array(data_x),np.array(data_y), (float(Lp_entry.get()), float(Lc_entry.get()), float(S_entry.get()), float(F0_entry.get())))
 	errors = np.sqrt(np.diag(covariance))
 	predicted_force = eOdjik_force_offset(np.array(data_x), *parameters)
 	residuals = np.array(data_y) - predicted_force
@@ -885,6 +906,10 @@ window.rowconfigure(2, weight=1)
 
 variable_radio_buttons = tk.StringVar()
 variable_checkbutton_view = tk.BooleanVar()
+variable_lp_fix = tk.BooleanVar()
+variable_lc_fix = tk.BooleanVar()
+variable_s_fix = tk.BooleanVar()
+variable_f0_fix = tk.BooleanVar()
 
 # Create and set all top menubar options
 menubar = Menu(window)
@@ -1066,26 +1091,30 @@ tk.Label(master=frame_input_buttons, text="Lp:").grid(row=2, column=0, sticky=tk
 Lp_entry = tk.Entry(master=frame_input_buttons,width=6)
 Lp_entry.insert(0,"50")
 Lp_entry.grid(row=2, column=1)
+tk.Checkbutton(master=frame_input_buttons, text="Fix", variable=variable_lp_fix).grid(row=2, column=2, sticky=tk.W)
 Lp_display = tk.Label(master=frame_input_buttons, text="")
-Lp_display.grid(row=2, column=2, sticky=tk.EW)
+Lp_display.grid(row=2, column=3, sticky=tk.EW)
 tk.Label(master=frame_input_buttons, text="Lc:").grid(row=3, column=0, sticky=tk.E)
 Lc_entry = tk.Entry(master=frame_input_buttons,width=6)
 Lc_entry.insert(0,"16.5")
 Lc_entry.grid(row=3, column=1)
+tk.Checkbutton(master=frame_input_buttons, text="Fix", variable=variable_lc_fix).grid(row=3, column=2, sticky=tk.W)
 Lc_display = tk.Label(master=frame_input_buttons, text="")
-Lc_display.grid(row=3, column=2, sticky=tk.EW)
+Lc_display.grid(row=3, column=3, sticky=tk.EW)
 tk.Label(master=frame_input_buttons, text="S:").grid(row=4, column=0, sticky=tk.E)
 S_entry = tk.Entry(master=frame_input_buttons,width=6)
 S_entry.insert(0,"1500")
 S_entry.grid(row=4, column=1)
+tk.Checkbutton(master=frame_input_buttons, text="Fix", variable=variable_s_fix).grid(row=4, column=2, sticky=tk.W)
 S_display = tk.Label(master=frame_input_buttons, text="")
-S_display.grid(row=4, column=2, sticky=tk.EW)
+S_display.grid(row=4, column=3, sticky=tk.EW)
 tk.Label(master=frame_input_buttons, text="F0:").grid(row=5, column=0, sticky=tk.E)
 F0_entry = tk.Entry(master=frame_input_buttons,width=6)
 F0_entry.insert(0,"0")
 F0_entry.grid(row=5, column=1)
+tk.Checkbutton(master=frame_input_buttons, text="Fix", variable=variable_f0_fix).grid(row=5, column=2, sticky=tk.W)
 F0_display = tk.Label(master=frame_input_buttons, text="")
-F0_display.grid(row=5, column=2, sticky=tk.EW)
+F0_display.grid(row=5, column=3, sticky=tk.EW)
 
 Fit_Button = Button(master=frame_input_buttons, text="Fit", command=fit)
 Fit_Button.grid(row=8, column=1)
