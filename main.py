@@ -22,12 +22,13 @@ class GLOBALVARS():
 		self.all_files: list = []
 		self.files_awaiting_selection: list = []
 		self.selected_files: list = []
-		self.groups = []
+		self.groups: list = []
 		self.active_file = None
 		self.output_directory: str = ""
 		self.graph_image = None
-		self.extension_speed_um_s = 0.5
-		self.frame_rate = 80
+		self.extension_speed_um_s: float = 0.5
+		self.frame_rate: int = 80
+		self.baseline_curve = pd.DataFrame({"Force": [], "Distance": []})
 GLOBALVARS = GLOBALVARS()
 
 # Create the "FD" class, to store all opened FD curves
@@ -755,7 +756,17 @@ def baseline_correction():
 	for curve in GLOBALVARS.selected_files:
 		curve.subtract_baseline(baseline_x[:-1], baseline_y)
 
+	GLOBALVARS.baseline = pd.DataFrame({"Force": baseline_y, "Distance": baseline_x[:-1]})
+
 	replot_canvas()
+
+def view_baseline() -> None:
+	if len(GLOBALVARS.baseline["Distance"]) > 1:
+		plt.plot(GLOBALVARS.baseline["Distance"], GLOBALVARS.baseline["Force"], )
+		plt.xlabel("Distance (um)")
+		plt.ylabel("Force (pN)")
+		plt.show()
+		plt.close()
 
 # For every reference curve, assume the curve is trimmed nicely to have one extension ready for fitting
 # fit every reference curve, and average each Lc. From the average Lc, convert each curve to Lc space.
@@ -977,6 +988,7 @@ calibration_menu = Menu(menubar)
 selection_menu.add_command(label='Mark Curve as Baseline',command=mark_baseline)
 selection_menu.add_command(label='Mark Curve as Reference',command=mark_reference)
 calibration_menu.add_command(label='Subtract Baseline',command=baseline_correction)
+calibration_menu.add_command(label='View Baseline',command=view_baseline)
 calibration_menu.add_command(label='Auto Force Scale',command=auto_force_scale)
 calibration_menu.add_command(label='Calculate Supercoiling Density',command=baseline_correction)
 
