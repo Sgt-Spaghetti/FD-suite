@@ -58,6 +58,8 @@ class FD():
 		self.fit_dataframe_retraction = pd.DataFrame({"Fit_Force_Retraction": [], "Fit_Distance_Retraction": []})
 
 		self.fit_parameters = pd.DataFrame({"Lp_ext": [], "Lc_ext": [], "S_ext": [], "F0_ext": [],"Lp_ret": [], "Lc_ret": [], "S_ret": [], "F0_ret": []})
+		self.fc_e: float = 0
+		self.fc_r: float = 0
 
 		self.initialise_attributes()
 
@@ -697,10 +699,28 @@ def fit() -> None:
 			replot_canvas()
 
 def mark_baseline() -> None:
-	GLOBALVARS.active_file.baseline = True
+	if GLOBALVARS.active_file.baseline == False:
+		GLOBALVARS.active_file.baseline = True
+		if len(listbox_all_selected_files.curselection()) > 0:
+			index_highlighted_file_name: list[int] = listbox_all_selected_files.curselection()
+			listbox_all_selected_files.itemconfig(index_highlighted_file_name, fg = "red")	
+	else:
+		GLOBALVARS.active_file.baseline = False
+		if len(listbox_all_selected_files.curselection()) > 0:
+			index_highlighted_file_name: list[int] = listbox_all_selected_files.curselection()
+			listbox_all_selected_files.itemconfig(index_highlighted_file_name, fg = "black")	
 
 def mark_reference() -> None:
-	GLOBALVARS.active_file.reference = True
+	if GLOBALVARS.active_file.reference ==  False:
+		GLOBALVARS.active_file.reference = True
+		if len(listbox_all_selected_files.curselection()) > 0:
+			index_highlighted_file_name: list[int] = listbox_all_selected_files.curselection()
+			listbox_all_selected_files.itemconfig(index_highlighted_file_name, fg = "green")	
+	else:
+		GLOBALVARS.active_file.reference = False
+		if len(listbox_all_selected_files.curselection()) > 0:
+			index_highlighted_file_name: list[int] = listbox_all_selected_files.curselection()
+			listbox_all_selected_files.itemconfig(index_highlighted_file_name, fg = "black")	
 
 def baseline_correction():
 	minimum = 100
@@ -824,9 +844,9 @@ def expand_graph() -> None:
 	replot_canvas(True)
 
 def export_data() -> None:
-	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": []}
+	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": [], "Fc-e": [], "Fc-r": []}
 	for file in GLOBALVARS.selected_files:
-		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"is_force_scaled": [file.is_force_scaled]})], axis = 1)
+		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]})], axis = 1)
 		output_data.to_csv(os.path.join(GLOBALVARS.output_directory, file.name+".csv"), index=False)
 
 		if file.has_fit == True:
@@ -840,6 +860,9 @@ def export_data() -> None:
 			fit_params["Lc-r"].append(file.fit_parameters["Lc_ret"][0])
 			fit_params["S-r"].append(file.fit_parameters["S_ret"][0])
 			fit_params["F0-r"].append(file.fit_parameters["F0_ret"][0])
+			fit_params["Fc-e"].append(file.fc_e)
+			fit_params["Fc-r"].append(file.fc_r)
+
 	out = pd.DataFrame(fit_params)
 	out.to_csv(os.path.join(GLOBALVARS.output_directory,"FIT_PARAMETERS.csv"), index=False)
 
@@ -869,12 +892,14 @@ def auto_fc() -> None:
 				entry_xmax.insert(0, str(GLOBALVARS.active_file.xmax))
 				entry_ymax.delete(0, tk.END)
 				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
+				GLOBALVARS.active_file.fc_e = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][ifc]
 			else:
 				GLOBALVARS.active_file.xmin = GLOBALVARS.active_file.first_derivative_dataframe["Time"][ifc]
 				entry_xmin.delete(0, tk.END)
 				entry_xmin.insert(0, str(GLOBALVARS.active_file.xmax))
 				entry_ymax.delete(0, tk.END)
 				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
+				GLOBALVARS.active_file.fc_r = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][ifc]
 
 		else:
 			for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Distance"])-1):
@@ -896,12 +921,14 @@ def auto_fc() -> None:
 				entry_xmax.insert(0, str(GLOBALVARS.active_file.xmax))
 				entry_ymax.delete(0, tk.END)
 				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
+				GLOBALVARS.active_file.fc_e = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][ifc]
 			else:
 				GLOBALVARS.active_file.xmin = GLOBALVARS.active_file.first_derivative_dataframe["Distance"][ifc]
 				entry_xmin.delete(0, tk.END)
 				entry_xmin.insert(0, str(GLOBALVARS.active_file.xmax))
 				entry_ymax.delete(0, tk.END)
 				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
+				GLOBALVARS.active_file.fc_r = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][ifc]
 
 		
 		replot_canvas()
