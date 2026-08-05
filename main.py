@@ -862,10 +862,19 @@ def auto_fc() -> None:
 					fc = abs(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][i])
 					ifc = i
 
+			GLOBALVARS.active_file.ymax = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][ifc]
 			if GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][ifc] > 0:
 				GLOBALVARS.active_file.xmax = GLOBALVARS.active_file.first_derivative_dataframe["Time"][ifc]
+				entry_xmax.delete(0, tk.END)
+				entry_xmax.insert(0, str(GLOBALVARS.active_file.xmax))
+				entry_ymax.delete(0, tk.END)
+				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
 			else:
 				GLOBALVARS.active_file.xmin = GLOBALVARS.active_file.first_derivative_dataframe["Time"][ifc]
+				entry_xmin.delete(0, tk.END)
+				entry_xmin.insert(0, str(GLOBALVARS.active_file.xmax))
+				entry_ymax.delete(0, tk.END)
+				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
 
 		else:
 			for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Distance"])-1):
@@ -880,10 +889,19 @@ def auto_fc() -> None:
 					fc = GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][i]
 					ifc = i
 
+			GLOBALVARS.active_file.ymax = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][ifc]
 			if GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][ifc] > 0:
 				GLOBALVARS.active_file.xmax = GLOBALVARS.active_file.first_derivative_dataframe["Distance"][ifc]
+				entry_xmax.delete(0, tk.END)
+				entry_xmax.insert(0, str(GLOBALVARS.active_file.xmax))
+				entry_ymax.delete(0, tk.END)
+				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
 			else:
 				GLOBALVARS.active_file.xmin = GLOBALVARS.active_file.first_derivative_dataframe["Distance"][ifc]
+				entry_xmin.delete(0, tk.END)
+				entry_xmin.insert(0, str(GLOBALVARS.active_file.xmax))
+				entry_ymax.delete(0, tk.END)
+				entry_ymax.insert(0, str(GLOBALVARS.active_file.ymax))
 
 		
 		replot_canvas()
