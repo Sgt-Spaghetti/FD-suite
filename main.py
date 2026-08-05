@@ -40,17 +40,17 @@ class FD():
 		self.force_units: str = "pN"
 		self.extension_units: str = "um"
 		self.time_units: str = "sec"
-		self.plot_time = False
+		self.plot_time: bool = False
 		self.xmin: float = 0
 		self.xmax: float = 0
 		self.ymin: float = 0
 		self.ymax: float = 0
 		self.trimmed = False
 		self.has_fit: bool = False
-		self.baseline = False
-		self.reference = False
-		self.is_baseline_subtracted = False
-		self.is_force_scaled = False
+		self.baseline: bool = False
+		self.reference: bool = False
+		self.is_baseline_subtracted: bool = False
+		self.is_force_scaled: bool = False
 		self.current_plotted_trimmed: str = None # Holds "extension" or "retraction" keywords
 
 		self.dataframe_extension = pd.DataFrame({"Force_Extension": [], "Distance_Extension": [], "Time_Extension": []})
@@ -294,9 +294,27 @@ class FD():
 			self.first_derivative_dataframe= pd.DataFrame({"First_Derivative": first_derivative[1], "Time": first_derivative[0], "Distance": self.processed_dataframe["Processed_Distance"]})
 			self.second_derivative_dataframe= pd.DataFrame({"Second_Derivative": second_derivative[1], "Time": second_derivative[0], "Distance": self.processed_dataframe["Processed_Distance"]})
 
-
 		replot_canvas()
 
+	def reset(self) -> None:
+		self.xmin: float = 0
+		self.xmax: float = 0
+		self.ymin: float = 0
+		self.ymax: float = 0
+		self.trimmed: bool = False
+		self.has_fit: bool = False
+		self.baseline: bool = False
+		self.reference: bool = False
+		self.is_baseline_subtracted: bool = False
+		self.is_force_scaled: bool = False
+		self.current_plotted_trimmed: str = None # Holds "extension" or "retraction" keywords
+
+		self.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": [], "Fit_Distance_Extension": []})
+		self.fit_dataframe_retraction = pd.DataFrame({"Fit_Force_Retraction": [], "Fit_Distance_Retraction": []})
+
+		self.fit_parameters = pd.DataFrame({"Lp_ext": [], "Lc_ext": [], "S_ext": [], "F0_ext": [],"Lp_ret": [], "Lc_ret": [], "S_ret": [], "F0_ret": []})
+		self.fc_e: float = 0
+		self.fc_r: float = 0
 
 # Handle loading a folder of h5 files into the program
 # NOTE: files are kept in RAM. If opening thousands this
@@ -502,6 +520,8 @@ def deselect_curves() -> None:
 	for curve in old_selection:
 		if curve.name != current_selection:
 			updated_selection.append(curve)
+		else:
+			curve.reset()
 	GLOBALVARS.selected_files = updated_selection
 	listbox_all_selected_files.delete(0,tk.END)
 	for curve in updated_selection:
