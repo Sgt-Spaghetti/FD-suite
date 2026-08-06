@@ -129,7 +129,7 @@ class FD():
 			plt.xlabel("Time (s)")
 		else:
 			plt.scatter(self.dataframe["Distance"], self.dataframe["Force"], s=0.1)
-			plt.xlabel("Distance (um)")
+			plt.xlabel("Distance (\u03bcm)")
 		plt.ylabel("Force (pN)")
 		plt.savefig(os.path.join(GLOBALVARS.output_directory, self.name + "_RAW_SCATTER.png"))
 		plt.savefig("TEMP_PLOT.png")
@@ -162,7 +162,7 @@ class FD():
 			ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
 			ax[1].plot(self.first_derivative_dataframe["Distance"], self.first_derivative_dataframe["First_Derivative"])
 			ax[2].plot(self.second_derivative_dataframe["Distance"], self.second_derivative_dataframe["Second_Derivative"])
-			ax[2].set_xlabel("Distance(um)")
+			ax[2].set_xlabel("Distance (\u03bcm)")
 			if xmin > int((min(self.processed_dataframe["Processed_Distance"])*100)+0.5)/100:
 				ax[0].axvline(xmin, color="r")
 				ax[1].axvline(xmin, color="r")
@@ -179,8 +179,8 @@ class FD():
 		ax[1].axhline(0, c="black")
 		ax[2].axhline(0, c="black")
 		ax[0].set_ylabel("Force (pN)")
-		ax[1].set_ylabel("dy/dx")
-		ax[2].set_ylabel("ddy/dx")
+		ax[1].set_ylabel("dy/dx (pN/\u03bcm)")
+		ax[2].set_ylabel("ddy/dx (pN/\u03bcm$^2$)")
 		plt.savefig(os.path.join(GLOBALVARS.output_directory, self.name + "_PROCESSED_SCATTER.png"))
 		plt.savefig("TEMP_PLOT.png")
 
@@ -201,14 +201,14 @@ class FD():
 					plt.xlabel("Time (s)")
 				else:
 					plt.scatter(self.dataframe_extension["Distance_Extension"], self.dataframe_extension["Force_Extension"], s=0.1)
-					plt.xlabel("Distance (um)")
+					plt.xlabel("Distance (\u03bcm)")
 			else:
 				if self.plot_time == True:
 					plt.scatter(self.dataframe_retraction["Time_Retraction"], self.dataframe_retraction["Force_Retraction"], s=0.1)
 					plt.xlabel("Time (s)")
 				else:
 					plt.scatter(self.dataframe_retraction["Distance_Retraction"], self.dataframe_retraction["Force_Retraction"], s=0.1)
-					plt.xlabel("Distance (um)")
+					plt.xlabel("Distance (\u03bcm)")
 
 			plt.ylabel("Force (pN)")
 			plt.savefig(os.path.join(GLOBALVARS.output_directory, self.name + "_TRIMMED_SCATTER.png"))
@@ -226,11 +226,11 @@ class FD():
 			if extension_or_retraction == "extension":
 				plt.scatter(self.dataframe_extension["Distance_Extension"], self.dataframe_extension["Force_Extension"], s=0.1)
 				plt.plot(self.fit_dataframe_extension["Fit_Distance_Extension"], self.fit_dataframe_extension["Fit_Force_Extension"],c="r")
-				plt.xlabel("Distance (um)")
+				plt.xlabel("Distance (\u03bcm)")
 			else:
 				plt.scatter(self.dataframe_retraction["Distance_Retraction"], self.dataframe_retraction["Force_Retraction"], s=0.1)
 				plt.plot(self.fit_dataframe_retraction["Fit_Distance_Retraction"], self.fit_dataframe_retraction["Fit_Force_Retraction"],c="r")
-				plt.xlabel("Distance (um)")
+				plt.xlabel("Distance (\u03bcm)")
 
 			plt.ylabel("Force (pN)")
 			plt.savefig(os.path.join(GLOBALVARS.output_directory, self.name + "_FIT.png"))
@@ -496,7 +496,17 @@ def window_resize(event) -> None:
 	replot_canvas()
 
 def update_optic_settings() -> None:
-	replot_canvas()
+
+	scale_factor = float(entry_frame_rate.get())/GLOBALVARS.frame_rate
+	GLOBALVARS.frame_rate = float(entry_frame_rate.get())
+	for curve in GLOBALVARS.all_files:
+		curve.dataframe = pd.DataFrame({"Force": curve.dataframe["Force"], "Distance": curve.dataframe["Distance"], "Time": [i/scale_factor for i in curve.dataframe["Time"]]})
+		curve.first_derivative_dataframe = pd.DataFrame({"First_Derivative": curve.first_derivative_dataframe["First_Derivative"], "Distance": curve.first_derivative_dataframe["Distance"], "Time": [i/scale_factor for i in curve.first_derivative_dataframe["Time"]]})
+		curve.second_derivative_dataframe = pd.DataFrame({"Second_Derivative": curve.second_derivative_dataframe["Second_Derivative"], "Distance": curve.second_derivative_dataframe["Distance"], "Time": [i/scale_factor for i in curve.second_derivative_dataframe["Time"]]})
+		curve.processed_dataframe = pd.DataFrame({"Processed_Force": curve.processed_dataframe["Processed_Force"], "Processed_Distance": curve.processed_dataframe["Processed_Distance"], "Processed_Time": [i/scale_factor for i in curve.processed_dataframe["Processed_Time"]]})
+		curve.dataframe_extension = pd.DataFrame({"Force_Extension": curve.dataframe_extension["Force_Extension"], "Distance_Extension": curve.dataframe_extension["Distance_Extension"], "Time_Extension": [i/scale_factor for i in curve.dataframe_extension["Time_Extension"]]})
+		curve.dataframe_retraction = pd.DataFrame({"Force_Retraction": curve.dataframe_retraction["Force_Retraction"], "Distance_Retraction": curve.dataframe_retraction["Distance_Retraction"], "Time_Retraction": [i/scale_factor for i in curve.dataframe_retraction["Time_Retraction"]]})
+
 	if GLOBALVARS.active_file != None:
 		GLOBALVARS.active_file.ymax = float(entry_ymax.get())
 		if GLOBALVARS.active_file.plot_time == True:
@@ -505,6 +515,7 @@ def update_optic_settings() -> None:
 		else:
 			scale_select_max_time.configure(from_ = min(GLOBALVARS.active_file.dataframe["Distance"]), to = max(GLOBALVARS.active_file.dataframe["Distance"]))
 			scale_select_min_time.configure(from_ = min(GLOBALVARS.active_file.dataframe["Distance"]), to = max(GLOBALVARS.active_file.dataframe["Distance"]))
+	replot_canvas()
 
 def add_selected_curves() -> None:
 	for curve in GLOBALVARS.files_awaiting_selection:
