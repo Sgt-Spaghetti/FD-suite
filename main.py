@@ -451,7 +451,7 @@ def slider_max_release(event) -> None:
 		entry_xmax.delete(0, tk.END)
 		entry_xmax.insert(0, str(GLOBALVARS.active_file.xmax))
 		GLOBALVARS.active_file.plot()
-		update_canvas()
+		replot_canvas()
 
 def slider_min_release(event) -> None:
 	if GLOBALVARS.active_file != None:
