@@ -526,6 +526,11 @@ def deselect_curves() -> None:
 	listbox_all_selected_files.delete(0,tk.END)
 	for curve in updated_selection:
 		listbox_all_selected_files.insert(tk.END, curve.name)
+		if curve.baseline == True:
+			listbox_all_selected_files.itemconfig(tk.END, fg = "red")	
+		elif curve.reference == True:
+			listbox_all_selected_files.itemconfig(tk.END, fg = "green")
+			
 
 def group_curves() -> None:
 	pass
