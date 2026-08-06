@@ -537,6 +537,13 @@ def group_curves() -> None:
 
 def auto_trim_data() -> None:
 	if GLOBALVARS.active_file in GLOBALVARS.selected_files:
+
+		if GLOBALVARS.active_file.has_fit == True:
+			GLOBALVARS.active_file.has_fit = False
+			GLOBALVARS.active_file.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": [], "Fit_Distance_Extension": []})
+			GLOBALVARS.active_file.fit_dataframe_retraction = pd.DataFrame({"Fit_Force_Retraction": [], "Fit_Distance_Retraction": []})
+
+			GLOBALVARS.active_file.fit_parameters = pd.DataFrame({"Lp_ext": [], "Lc_ext": [], "S_ext": [], "F0_ext": [],"Lp_ret": [], "Lc_ret": [], "S_ret": [], "F0_ret": []})
 		
 		inflection_point = 0
 		max_force = 0
@@ -573,6 +580,14 @@ def auto_trim_data() -> None:
 
 def manual_trim_data() -> None:
 	if GLOBALVARS.active_file in GLOBALVARS.selected_files:
+
+		if GLOBALVARS.active_file.has_fit == True:
+			GLOBALVARS.active_file.has_fit = False
+			GLOBALVARS.active_file.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": [], "Fit_Distance_Extension": []})
+			GLOBALVARS.active_file.fit_dataframe_retraction = pd.DataFrame({"Fit_Force_Retraction": [], "Fit_Distance_Retraction": []})
+
+			GLOBALVARS.active_file.fit_parameters = pd.DataFrame({"Lp_ext": [], "Lc_ext": [], "S_ext": [], "F0_ext": [],"Lp_ret": [], "Lc_ret": [], "S_ret": [], "F0_ret": []})
+		
 		trimmed_force = []
 		trimmed_time = []
 		trimmed_dist= []
@@ -1082,7 +1097,7 @@ frame_optical_settings.columnconfigure(8, weight=0)
 
 ## Create listboxes
 tk.Label(master=frame_file_managers, text="All H5 Files:").grid(row=0, column=0)
-listbox_all_h5_files = tk.Listbox(master=frame_file_managers,selectmode=tk.MULTIPLE)
+listbox_all_h5_files = tk.Listbox(master=frame_file_managers,selectmode=tk.EXTENDED)
 listbox_all_h5_files.bind('<<ListboxSelect>>', all_h5_listbox_select)
 listbox_all_h5_files.grid(row=1, column=0, sticky=[tk.N,tk.E, tk.S, tk.W])
 ## associates scrollbars
