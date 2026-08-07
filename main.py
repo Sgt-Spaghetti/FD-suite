@@ -9,6 +9,7 @@
 import tkinter as tk
 from tkinter import *
 from tkinter import filedialog
+from tkinter import ttk
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy
@@ -71,10 +72,10 @@ class FD():
 		# NOTE: files are kept in RAM. If opening thousands this
 		# might cause an issue, but it is highly unlikely
 		raw_data = h5py.File(self.filepath, 'r')
-		force_data: list[float] = raw_data["Force LF"]["Trap 2"]["Value"]
-		distance_data: list[float] = raw_data["Distance"]["Distance 1"]["Value"]
+		force_data: list[float] = raw_data["Force LF"][y_variable_combo.get()]["Value"]
+		distance_data: list[float] = raw_data["Distance"][x_variable_combo.get()]["Value"]
 		#distance_to_time_conversion: list[float] = [(i/GLOBALVARS.frame_rate) for i in range(len(distance_data))]
-		time_data: list[float] = raw_data["Force LF"]["Trap 2"]["Timestamp"]
+		time_data: list[float] = raw_data["Force LF"][y_variable_combo.get()]["Timestamp"]
 		zero_time = time_data[0]
 		distance_to_time_conversion: list[float] = (time_data - zero_time)/1000000000
 
@@ -1071,7 +1072,7 @@ def expand_graph() -> None:
 def export_data() -> None:
 	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": [], "Fc-e": [], "Fc-r": []}
 	for file in GLOBALVARS.selected_files:
-		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]})], axis = 1)
+		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]}),pd.DataFrame({"x_variable": [x_variable_combo.get()]}) ,pd.DataFrame({"y_variable": [y_variable_combo.get()]})], axis = 1)
 		output_data.to_csv(os.path.join(GLOBALVARS.output_directory, file.name+".csv"), index=False)
 
 		if file.has_fit == True:
@@ -1263,12 +1264,12 @@ frame_graph_settings.rowconfigure(0, weight=1)
 title_label = tk.Label(master=frame_title_manager, text="DEMO")
 title_label.pack()
 
-'''
 frame_optical_settings = tk.Frame(master=frame_file_managers)
 frame_optical_settings.grid(row=4, column=0, columnspan=3, sticky=[tk.E, tk.W])
 frame_optical_settings.rowconfigure(0, weight=0)
 frame_optical_settings.columnconfigure(0, weight=1)
-frame_optical_settings.columnconfigure(1, weight=0)
+frame_optical_settings.columnconfigure(1, weight=1)
+'''
 frame_optical_settings.columnconfigure(2, weight=0)
 frame_optical_settings.columnconfigure(3, weight=1)
 '''
@@ -1312,6 +1313,17 @@ tk.Label(master=frame_optical_settings, text="Hz").grid(row=0, column=2, sticky=
 #tk.Label(master=frame_optical_settings, text="um/s").grid(row=0, column=6, sticky=tk.W)
 tk.Button(master=frame_optical_settings, text="Update", command=update_optic_settings).grid(row=0, column=3)
 '''
+
+# Combobox for selecting whether to use Force 2x / Trap 2 etc
+x_variable_combo = ttk.Combobox(master=frame_optical_settings, state="readonly")
+x_variable_combo["values"] = ["Distance 1", "Distance 2"]
+x_variable_combo.current(0)
+x_variable_combo.grid(row=0, column=0)
+
+y_variable_combo = ttk.Combobox(master=frame_optical_settings, state="readonly")
+y_variable_combo["values"] = ["Force 2x", "Force 2y", "Trap 2"]
+y_variable_combo.current(2)
+y_variable_combo.grid(row=0, column=1)
 
 # Canvas to display graphs
 canvas_graph_display = tk.Canvas(master=frame_graphing_windows, bg="#856ff8")
