@@ -62,16 +62,22 @@ class FD():
 		self.fc_e: float = 0
 		self.fc_r: float = 0
 
+		self.show_first_deriv = True
+		self.show_second_deriv = True
+
 		self.initialise_attributes()
 
 	def initialise_attributes(self) -> None:
 		# NOTE: files are kept in RAM. If opening thousands this
 		# might cause an issue, but it is highly unlikely
 		raw_data = h5py.File(self.filepath, 'r')
-		force_data: list[float] = raw_data["Force LF"]["Force 2x"]["Value"]
+		force_data: list[float] = raw_data["Force LF"]["Trap 2"]["Value"]
 		distance_data: list[float] = raw_data["Distance"]["Distance 1"]["Value"]
-		distance_to_time_conversion: list[float] = [(i/GLOBALVARS.frame_rate) for i in range(len(distance_data))]
-	
+		#distance_to_time_conversion: list[float] = [(i/GLOBALVARS.frame_rate) for i in range(len(distance_data))]
+		time_data: list[float] = raw_data["Force LF"]["Trap 2"]["Timestamp"]
+		zero_time = time_data[0]
+		distance_to_time_conversion: list[float] = (time_data - zero_time)/1000000000
+
 		# Compute derivatives of the raw data, useful for data trimming
 		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, 2*GLOBALVARS.frame_rate, 2)
 		first_derivative = [derivatives[0], derivatives[1]]
@@ -86,12 +92,13 @@ class FD():
 	# The central function responsible for plotting the curves, depending on what "state" the curve is in
 	# For example, if it has been trimmed into extension / retraction curves, or fit with the eOdjik model
 	def plot(self, expand_graph = False, extension_or_retraction = None) -> None:
+		'''
 		# If the framerate has been changed since last function call, update the global variable and adjust axis.
 		if float(entry_frame_rate.get()) != GLOBALVARS.frame_rate:
 			GLOBALVARS.frame_rate = float(entry_frame_rate.get())
 			distance_to_time_conversion: list[float] = [(i/GLOBALVARS.frame_rate) for i in range(len(self.dataframe["Distance"]))]
 			self.dataframe["Time"] = distance_to_time_conversion
-		
+		'''
 		selected = False	
 		for f in GLOBALVARS.selected_files:
 			if self.name == f.name:
@@ -142,45 +149,170 @@ class FD():
 		window.update_idletasks()
 		width: int = canvas_graph_display.winfo_width()
 		height: int = canvas_graph_display.winfo_height()
-		
-		fig, ax = plt.subplots(3,1,figsize=(width/100, height/100))
-		fig.suptitle(self.name)
+	
 		if self.plot_time == True:
-			ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
-			ax[1].plot(self.first_derivative_dataframe["Time"], self.first_derivative_dataframe["First_Derivative"])
-			ax[2].plot(self.second_derivative_dataframe["Time"], self.second_derivative_dataframe["Second_Derivative"])
-			ax[2].set_xlabel("Time (s)")
-			if xmin > int((min(self.dataframe["Time"])*100)+0.5)/100:
-				ax[0].axvline(xmin, color="r")
-				ax[1].axvline(xmin, color="r")
-				ax[2].axvline(xmin, color="r")
-			if xmax > int((min(self.dataframe["Time"])*100)+0.5)/100:
-				ax[0].axvline(xmax, color="g")
-				ax[1].axvline(xmax, color="g")
-				ax[2].axvline(xmax, color="g")
-		else:
-			ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
-			ax[1].plot(self.first_derivative_dataframe["Distance"], self.first_derivative_dataframe["First_Derivative"])
-			ax[2].plot(self.second_derivative_dataframe["Distance"], self.second_derivative_dataframe["Second_Derivative"])
-			ax[2].set_xlabel("Distance (\u03bcm)")
-			if xmin > int((min(self.processed_dataframe["Processed_Distance"])*100)+0.5)/100:
-				ax[0].axvline(xmin, color="r")
-				ax[1].axvline(xmin, color="r")
-				ax[2].axvline(xmin, color="r")
-			if xmax > int((min(self.processed_dataframe["Processed_Distance"])*100)+0.5)/100:
-				ax[0].axvline(xmax, color="g")
-				ax[1].axvline(xmax, color="g")
-				ax[2].axvline(xmax, color="g")
-		if ymax > 0:
-			ax[0].axhline(ymax, c="black")
-		if ymin > 0:
-			ax[0].axhline(ymin, c="blue")
+			if self.show_first_deriv == True and self.show_second_deriv == True:
+				fig, ax = plt.subplots(3,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax[1].plot(self.first_derivative_dataframe["Time"], self.first_derivative_dataframe["First_Derivative"])
+				ax[2].plot(self.second_derivative_dataframe["Time"], self.second_derivative_dataframe["Second_Derivative"])
+				ax[2].set_xlabel("Time (s)")
+				if xmin > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax[0].axvline(xmin, color="r")
+					ax[1].axvline(xmin, color="r")
+					ax[2].axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax[0].axvline(xmax, color="g")
+					ax[1].axvline(xmax, color="g")
+					ax[2].axvline(xmax, color="g")
+				if ymax > 0:
+					ax[0].axhline(ymax, c="black")
+				if ymin > 0:
+					ax[0].axhline(ymin, c="blue")
 
-		ax[1].axhline(0, c="black")
-		ax[2].axhline(0, c="black")
-		ax[0].set_ylabel("Force (pN)")
-		ax[1].set_ylabel("dy/dx (pN/\u03bcm)")
-		ax[2].set_ylabel("ddy/dx (pN/\u03bcm$^2$)")
+				ax[0].set_ylabel("Force (pN)")
+				ax[1].axhline(0, c="black")
+				ax[1].set_ylabel("dy/dx (pN/sm)")
+				ax[2].axhline(0, c="black")
+				ax[2].set_ylabel("ddy/dx (pN/s$^2$)")
+			elif self.show_first_deriv == True and self.show_second_deriv == False: 
+				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax[1].plot(self.first_derivative_dataframe["Time"], self.first_derivative_dataframe["First_Derivative"])
+				ax[1].set_xlabel("Time (s)")
+				if xmin > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax[0].axvline(xmin, color="r")
+					ax[1].axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax[0].axvline(xmax, color="g")
+					ax[1].axvline(xmax, color="g")
+				if ymax > 0:
+					ax[0].axhline(ymax, c="black")
+				if ymin > 0:
+					ax[0].axhline(ymin, c="blue")
+
+				ax[0].set_ylabel("Force (pN)")
+				ax[1].axhline(0, c="black")
+				ax[1].set_ylabel("dy/dx (pN/s)")
+			elif self.show_first_deriv == False and self.show_second_deriv == True: 
+				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax[1].plot(self.second_derivative_dataframe["Time"], self.second_derivative_dataframe["Second_Derivative"])
+				ax[1].set_xlabel("Time (s)")
+				if xmin > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax[0].axvline(xmin, color="r")
+					ax[1].axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax[0].axvline(xmax, color="g")
+					ax[1].axvline(xmax, color="g")
+				if ymax > 0:
+					ax[0].axhline(ymax, c="black")
+				if ymin > 0:
+					ax[0].axhline(ymin, c="blue")
+
+				ax[0].set_ylabel("Force (pN)")
+				ax[1].axhline(0, c="black")
+				ax[1].set_ylabel("ddy/ddx (pN/s$^2$)")
+			else:
+				fig, ax = plt.subplots(1,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax.scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax.set_xlabel("Time (s)")
+				if xmin > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax.axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Time"])*100)+0.5)/100:
+					ax.axvline(xmax, color="g")
+				if ymax > 0:
+					ax.axhline(ymax, c="black")
+				if ymin > 0:
+					ax.axhline(ymin, c="blue")
+
+				ax.set_ylabel("Force (pN)")
+		else:
+			if self.show_first_deriv == True and self.show_second_deriv == True:
+				fig, ax = plt.subplots(3,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax[1].plot(self.first_derivative_dataframe["Distance"], self.first_derivative_dataframe["First_Derivative"])
+				ax[2].plot(self.second_derivative_dataframe["Distance"], self.second_derivative_dataframe["Second_Derivative"])
+				ax[2].set_xlabel("Distance (\u03bcm)")
+				if xmin > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax[0].axvline(xmin, color="r")
+					ax[1].axvline(xmin, color="r")
+					ax[2].axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax[0].axvline(xmax, color="g")
+					ax[1].axvline(xmax, color="g")
+					ax[2].axvline(xmax, color="g")
+				if ymax > 0:
+					ax[0].axhline(ymax, c="black")
+				if ymin > 0:
+					ax[0].axhline(ymin, c="blue")
+
+				ax[0].set_ylabel("Force (pN)")
+				ax[1].axhline(0, c="black")
+				ax[1].set_ylabel("dy/dx (pN/\u03bcm)")
+				ax[2].axhline(0, c="black")
+				ax[2].set_ylabel("ddy/dx (pN/\u03bcm$^2$)")
+			elif self.show_first_deriv == True and self.show_second_deriv == False: 
+				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax[1].plot(self.first_derivative_dataframe["Distance"], self.first_derivative_dataframe["First_Derivative"])
+				ax[1].set_xlabel("Distance (\u03bcm)")
+				if xmin > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax[0].axvline(xmin, color="r")
+					ax[1].axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax[0].axvline(xmax, color="g")
+					ax[1].axvline(xmax, color="g")
+				if ymax > 0:
+					ax[0].axhline(ymax, c="black")
+				if ymin > 0:
+					ax[0].axhline(ymin, c="blue")
+
+				ax[0].set_ylabel("Force (pN)")
+				ax[1].axhline(0, c="black")
+				ax[1].set_ylabel("dy/dx (pN/\u03bcm)")
+			elif self.show_first_deriv == False and self.show_second_deriv == True: 
+				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax[1].plot(self.second_derivative_dataframe["Distance"], self.second_derivative_dataframe["Second_Derivative"])
+				ax[1].set_xlabel("Distance (\u03bcm)")
+				if xmin > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax[0].axvline(xmin, color="r")
+					ax[1].axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax[0].axvline(xmax, color="g")
+					ax[1].axvline(xmax, color="g")
+				if ymax > 0:
+					ax[0].axhline(ymax, c="black")
+				if ymin > 0:
+					ax[0].axhline(ymin, c="blue")
+
+				ax[0].set_ylabel("Force (pN)")
+				ax[1].axhline(0, c="black")
+				ax[1].set_ylabel("ddy/ddx (pN/\u03bcm$^2$)")
+			else:
+				fig, ax = plt.subplots(1,1,figsize=(width/100, height/100))
+				fig.suptitle(self.name)
+				ax.scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
+				ax.set_xlabel("Distance (\u03bcm)")
+				if xmin > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax.axvline(xmin, color="r")
+				if xmax > int((min(self.dataframe["Distance"])*100)+0.5)/100:
+					ax.axvline(xmax, color="g")
+				if ymax > 0:
+					ax.axhline(ymax, c="black")
+				if ymin > 0:
+					ax.axhline(ymin, c="blue")
+
+				ax.set_ylabel("Force (pN)")
+
 		plt.savefig(os.path.join(GLOBALVARS.output_directory, self.name + "_PROCESSED_SCATTER.png"))
 		plt.savefig("TEMP_PLOT.png")
 
@@ -555,8 +687,18 @@ def deselect_curves() -> None:
 			listbox_all_selected_files.itemconfig(tk.END, fg = "green")
 			
 
-def group_curves() -> None:
-	pass
+def toggle_first_derivative() -> None:
+	if GLOBALVARS.active_file.show_first_deriv == True:
+		GLOBALVARS.active_file.show_first_deriv = False
+	else:
+		GLOBALVARS.active_file.show_first_deriv = True
+	replot_canvas()
+def toggle_second_derivative() -> None:
+	if GLOBALVARS.active_file.show_second_deriv == True:
+		GLOBALVARS.active_file.show_second_deriv = False
+	else:
+		GLOBALVARS.active_file.show_second_deriv = True
+	replot_canvas()
 
 def auto_trim_data() -> None:
 	if GLOBALVARS.active_file in GLOBALVARS.selected_files:
@@ -787,6 +929,21 @@ def mark_reference() -> None:
 			listbox_all_selected_files.itemconfig(index_highlighted_file_name, fg = "black")	
 
 def baseline_correction():
+	if len(GLOBALVARS.baseline_curve["Distance"]) > 1:
+		for curve in GLOBALVARS.selected_files:
+			curve.subtract_baseline(GLOBALVARS.baseline_curve["Distance"], GLOBALVARS.baseline_curve["Force"])
+
+	replot_canvas()
+
+def load_baseline() -> None:
+	file_path = filedialog.askopenfilename(title="Select Baseline CSV", filetypes=[("CSV", ('*.csv')), ("All files", "*.*")])	
+	GLOBALVARS.baseline_curve = pd.read_csv(file_path)
+
+def save_baseline() -> None:
+	if len(GLOBALVARS.baseline_curve["Distance"]) > 1:
+		GLOBALVARS.baseline_curve.to_csv(os.path.join(GLOBALVARS.output_directory, "BASELINE.csv"), index=False)
+
+def calculate_baseline() -> None:
 	minimum = 100
 	maximum = 0
 	densist_curve = 0
@@ -815,17 +972,11 @@ def baseline_correction():
 			last_added = mean
 		else:
 			baseline_y.append(last_added)
-	
-	for curve in GLOBALVARS.selected_files:
-		curve.subtract_baseline(baseline_x[:-1], baseline_y)
-
-	GLOBALVARS.baseline = pd.DataFrame({"Force": baseline_y, "Distance": baseline_x[:-1]})
-
-	replot_canvas()
+	GLOBALVARS.baseline_curve = pd.DataFrame({"Force": baseline_y, "Distance": baseline_x[:-1]})	
 
 def view_baseline() -> None:
-	if len(GLOBALVARS.baseline["Distance"]) > 1:
-		plt.plot(GLOBALVARS.baseline["Distance"], GLOBALVARS.baseline["Force"], )
+	if len(GLOBALVARS.baseline_curve["Distance"]) > 1:
+		plt.plot(GLOBALVARS.baseline_curve["Distance"], GLOBALVARS.baseline_curve["Force"], )
 		plt.xlabel("Distance (um)")
 		plt.ylabel("Force (pN)")
 		plt.show()
@@ -1050,13 +1201,22 @@ selection_menu.add_command(label='Deselect Highlighted Curves',command=deselect_
 calibration_menu = Menu(menubar)
 selection_menu.add_command(label='Mark Curve as Baseline',command=mark_baseline)
 selection_menu.add_command(label='Mark Curve as Reference',command=mark_reference)
-calibration_menu.add_command(label='Subtract Baseline',command=baseline_correction)
+
 calibration_menu.add_command(label='View Baseline',command=view_baseline)
+calibration_menu.add_command(label='Load Baseline',command=load_baseline)
+calibration_menu.add_command(label='Save Baseline',command=save_baseline)
+calibration_menu.add_command(label='Calculate Baseline',command=calculate_baseline)
+calibration_menu.add_command(label='Subtract Baseline',command=baseline_correction)
 calibration_menu.add_command(label='Auto Force Scale',command=auto_force_scale)
 calibration_menu.add_command(label='Calculate Supercoiling Density',command=baseline_correction)
 
+view_menu = Menu(menubar)
+view_menu.add_command(label='Toggle First Derivative',command=toggle_first_derivative)
+view_menu.add_command(label='Toggle Second Derivative',command=toggle_second_derivative)
+
 # Add the dropdowns to the menubar
 menubar.add_cascade(label="File",menu=file_menu)
+menubar.add_cascade(label="View",menu=view_menu)
 menubar.add_cascade(label="Selection",menu=selection_menu)
 menubar.add_cascade(label="Calibration",menu=calibration_menu)
 
@@ -1103,6 +1263,7 @@ frame_graph_settings.rowconfigure(0, weight=1)
 title_label = tk.Label(master=frame_title_manager, text="DEMO")
 title_label.pack()
 
+'''
 frame_optical_settings = tk.Frame(master=frame_file_managers)
 frame_optical_settings.grid(row=4, column=0, columnspan=3, sticky=[tk.E, tk.W])
 frame_optical_settings.rowconfigure(0, weight=0)
@@ -1110,7 +1271,7 @@ frame_optical_settings.columnconfigure(0, weight=1)
 frame_optical_settings.columnconfigure(1, weight=0)
 frame_optical_settings.columnconfigure(2, weight=0)
 frame_optical_settings.columnconfigure(3, weight=1)
-
+'''
 # File selection listboxes
 
 ## Create listboxes
@@ -1137,6 +1298,7 @@ scrollbar_h_selected_h5.grid(row=2, column=2, sticky=[tk.E, tk.W])
 listbox_all_h5_files.config(yscrollcommand=scrollbar_v_all_h5.set,xscrollcommand=scrollbar_h_all_h5.set)
 listbox_all_selected_files.config(yscrollcommand=scrollbar_v_selected_h5.set,xscrollcommand=scrollbar_h_selected_h5.set)
 
+'''
 # Set key optical settings used in the session
 tk.Label(master=frame_optical_settings, text="FPS: ").grid(row=0, column=0, sticky=[tk.E])
 entry_frame_rate = tk.Entry(master=frame_optical_settings, width=3)
@@ -1149,7 +1311,7 @@ tk.Label(master=frame_optical_settings, text="Hz").grid(row=0, column=2, sticky=
 #entry_extension_speed.grid(row=0, column=5, sticky=tk.W)
 #tk.Label(master=frame_optical_settings, text="um/s").grid(row=0, column=6, sticky=tk.W)
 tk.Button(master=frame_optical_settings, text="Update", command=update_optic_settings).grid(row=0, column=3)
-
+'''
 
 # Canvas to display graphs
 canvas_graph_display = tk.Canvas(master=frame_graphing_windows, bg="#856ff8")
