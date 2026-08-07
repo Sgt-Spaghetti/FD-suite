@@ -1216,9 +1216,9 @@ view_menu.add_command(label='Toggle Second Derivative',command=toggle_second_der
 
 # Add the dropdowns to the menubar
 menubar.add_cascade(label="File",menu=file_menu)
-menubar.add_cascade(label="View",menu=view_menu)
 menubar.add_cascade(label="Selection",menu=selection_menu)
 menubar.add_cascade(label="Calibration",menu=calibration_menu)
+menubar.add_cascade(label="View",menu=view_menu)
 
 frame_title_manager = tk.Frame(master=window)
 frame_title_manager.grid(row=0, column=0, columnspan=2)
