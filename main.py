@@ -30,6 +30,9 @@ class GLOBALVARS():
 		self.extension_speed_um_s: float = 0.5
 		self.frame_rate: int = 80
 		self.baseline_curve = pd.DataFrame({"Force": [], "Distance": []})
+		self.show_first_deriv = True
+		self.show_second_deriv = True
+
 GLOBALVARS = GLOBALVARS()
 
 # Create the "FD" class, to store all opened FD curves
@@ -62,9 +65,6 @@ class FD():
 		self.fit_parameters = pd.DataFrame({"Lp_ext": [], "Lc_ext": [], "S_ext": [], "F0_ext": [],"Lp_ret": [], "Lc_ret": [], "S_ret": [], "F0_ret": []})
 		self.fc_e: float = 0
 		self.fc_r: float = 0
-
-		self.show_first_deriv = True
-		self.show_second_deriv = True
 
 		self.initialise_attributes()
 
@@ -152,7 +152,7 @@ class FD():
 		height: int = canvas_graph_display.winfo_height()
 	
 		if self.plot_time == True:
-			if self.show_first_deriv == True and self.show_second_deriv == True:
+			if GLOBALVARS.show_first_deriv == True and GLOBALVARS.show_second_deriv == True:
 				fig, ax = plt.subplots(3,1,figsize=(width/100, height/100))
 				fig.suptitle(self.name)
 				ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
@@ -177,7 +177,7 @@ class FD():
 				ax[1].set_ylabel("dy/dx (pN/sm)")
 				ax[2].axhline(0, c="black")
 				ax[2].set_ylabel("ddy/dx (pN/s$^2$)")
-			elif self.show_first_deriv == True and self.show_second_deriv == False: 
+			elif GLOBALVARS.show_first_deriv == True and GLOBALVARS.show_second_deriv == False: 
 				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
 				fig.suptitle(self.name)
 				ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
@@ -197,7 +197,7 @@ class FD():
 				ax[0].set_ylabel("Force (pN)")
 				ax[1].axhline(0, c="black")
 				ax[1].set_ylabel("dy/dx (pN/s)")
-			elif self.show_first_deriv == False and self.show_second_deriv == True: 
+			elif GLOBALVARS.show_first_deriv == False and GLOBALVARS.show_second_deriv == True: 
 				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
 				fig.suptitle(self.name)
 				ax[0].scatter(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], s=0.1)
@@ -233,7 +233,7 @@ class FD():
 
 				ax.set_ylabel("Force (pN)")
 		else:
-			if self.show_first_deriv == True and self.show_second_deriv == True:
+			if GLOBALVARS.show_first_deriv == True and GLOBALVARS.show_second_deriv == True:
 				fig, ax = plt.subplots(3,1,figsize=(width/100, height/100))
 				fig.suptitle(self.name)
 				ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
@@ -258,7 +258,7 @@ class FD():
 				ax[1].set_ylabel("dy/dx (pN/\u03bcm)")
 				ax[2].axhline(0, c="black")
 				ax[2].set_ylabel("ddy/dx (pN/\u03bcm$^2$)")
-			elif self.show_first_deriv == True and self.show_second_deriv == False: 
+			elif GLOBALVARS.show_first_deriv == True and GLOBALVARS.show_second_deriv == False: 
 				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
 				fig.suptitle(self.name)
 				ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
@@ -278,7 +278,7 @@ class FD():
 				ax[0].set_ylabel("Force (pN)")
 				ax[1].axhline(0, c="black")
 				ax[1].set_ylabel("dy/dx (pN/\u03bcm)")
-			elif self.show_first_deriv == False and self.show_second_deriv == True: 
+			elif GLOBALVARS.show_first_deriv == False and GLOBALVARS.show_second_deriv == True: 
 				fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
 				fig.suptitle(self.name)
 				ax[0].scatter(self.processed_dataframe["Processed_Distance"], self.processed_dataframe["Processed_Force"], s=0.1)
@@ -689,16 +689,16 @@ def deselect_curves() -> None:
 			
 
 def toggle_first_derivative() -> None:
-	if GLOBALVARS.active_file.show_first_deriv == True:
-		GLOBALVARS.active_file.show_first_deriv = False
+	if GLOBALVARS.show_first_deriv == True:
+		GLOBALVARS.show_first_deriv = False
 	else:
-		GLOBALVARS.active_file.show_first_deriv = True
+		GLOBALVARS.show_first_deriv = True
 	replot_canvas()
 def toggle_second_derivative() -> None:
-	if GLOBALVARS.active_file.show_second_deriv == True:
-		GLOBALVARS.active_file.show_second_deriv = False
+	if GLOBALVARS.show_second_deriv == True:
+		GLOBALVARS.show_second_deriv = False
 	else:
-		GLOBALVARS.active_file.show_second_deriv = True
+		GLOBALVARS.show_second_deriv = True
 	replot_canvas()
 
 def auto_trim_data() -> None:
