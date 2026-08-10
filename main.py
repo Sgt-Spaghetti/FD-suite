@@ -80,7 +80,7 @@ class FD():
 		distance_to_time_conversion: list[float] = (time_data - zero_time)/1000000000
 
 		# Compute derivatives of the raw data, useful for data trimming
-		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, 2*GLOBALVARS.frame_rate, 2)
+		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, GLOBALVARS.frame_rate/2, 2)
 		first_derivative = [derivatives[0], derivatives[1]]
 		second_derivative = [derivatives[0], derivatives[2]]
 
@@ -374,10 +374,10 @@ class FD():
 	# the polynomial coefficients returned buy the Savitzky-Golay fit.
 	# This is performed in the time domain, which guarantees evenly spaced data by
 	# 1/framerate for the optical trap's camera system.
-	# We will use a window size of 2*framerate to create a pseudo-2Hz lowpass filter, and we
+	# We will use a window size of 0.5*framerate to create a pseudo-0.5Hz lowpass filter, and we
 	# will fit the window to a second degree polynomial.
 
-	def differentiate_savgol(self, xdata, ydata, windowsize=160, degree=2):
+	def differentiate_savgol(self, xdata, ydata, windowsize=20, degree=2):
 		first_derivative = scipy.signal.savgol_filter(ydata, window_length=windowsize, polyorder=degree, mode="nearest", deriv=1)
 		second_derivative = scipy.signal.savgol_filter(ydata, window_length=windowsize, polyorder=degree, mode="nearest", deriv=2)
 		return [xdata, first_derivative, second_derivative]
@@ -420,7 +420,7 @@ class FD():
 
 			
 			# Compute derivatives of the raw data, useful for data trimming
-			derivatives: list = self.differentiate_savgol(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], 2*GLOBALVARS.frame_rate, 2)
+			derivatives: list = self.differentiate_savgol(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], GLOBALVARS.frame_rate/2, 2)
 			first_derivative = [derivatives[0], derivatives[1]]
 			second_derivative = [derivatives[0], derivatives[2]]
 
@@ -603,6 +603,17 @@ def update_trim_settings() -> None:
 		GLOBALVARS.active_file.ymax = float(entry_ymax.get())
 		replot_canvas()
 
+def update_trim_entries_ui() -> None:
+	if GLOBALVARS.active_file != None:
+		entry_xmin.delete(0, tk.END)
+		entry_xmin.insert(0, GLOBALVARS.active_file.xmin)
+		entry_xmax.delete(0, tk.END)
+		entry_xmax.insert(0, GLOBALVARS.active_file.xmax)
+		entry_ymin.delete(0, tk.END)
+		entry_ymin.insert(0, GLOBALVARS.active_file.ymin)
+		entry_ymax.delete(0, tk.END)
+		entry_ymax.insert(0, GLOBALVARS.active_file.ymax)
+
 def update_canvas() -> None:
 	GLOBALVARS.graph_image = tk.PhotoImage(file="TEMP_PLOT.png")
 	canvas_graph_display.create_image(0,0,image=GLOBALVARS.graph_image, anchor="nw")
@@ -701,6 +712,7 @@ def toggle_second_derivative() -> None:
 		GLOBALVARS.show_second_deriv = True
 	replot_canvas()
 
+# Will auto-trim to FC using xmin-> inflection_point then clamped ymax to max of Fc
 def auto_trim_data() -> None:
 	if GLOBALVARS.active_file in GLOBALVARS.selected_files:
 
@@ -713,11 +725,17 @@ def auto_trim_data() -> None:
 		
 		inflection_point = 0
 		max_force = 0
-		force_cap = float(entry_ymax.get())
 		for i in range(len(GLOBALVARS.active_file.processed_dataframe["Processed_Time"])-1):
 			if GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] > max_force and GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i] > GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i+1]:	
 				max_force = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][i]
 				inflection_point = i
+
+		force_cap = 0
+		max_first_deriv = max(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point])
+		for index, value in enumerate(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
+			if value == max_first_deriv:
+				force_cap = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][index]
+
 		force_ext = []
 		dist_ext= []
 		time_ext = []
@@ -741,7 +759,17 @@ def auto_trim_data() -> None:
 
 		GLOBALVARS.active_file.trimmed=True
 		GLOBALVARS.active_file.current_plotted_trimmed="extension"
+		GLOBALVARS.active_file.ymax = force_cap
+		GLOBALVARS.active_file.ymin = -5
+		if GLOBALVARS.active_file.plot_time == True:
+			GLOBALVARS.active_file.xmin = min(time_ext)
+			GLOBALVARS.active_file.xmax = max(time_ext)
+		else:
+			GLOBALVARS.active_file.xmin = min(dist_ext)
+			GLOBALVARS.active_file.xmax = max(dist_ext)
 		GLOBALVARS.active_file.plot("extension")
+
+		update_trim_entries_ui()
 		replot_canvas()
 
 def manual_trim_data() -> None:
@@ -1001,11 +1029,17 @@ def auto_force_scale() -> None:
 			if curve in GLOBALVARS.selected_files:	
 				inflection_point = 0
 				max_force = 0
-				force_cap = float(entry_ymax.get())
 				for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
 					if curve.processed_dataframe["Processed_Force"][i] > max_force and curve.processed_dataframe["Processed_Force"][i] > curve.processed_dataframe["Processed_Force"][i+1]:	
 						max_force = curve.processed_dataframe["Processed_Force"][i]
 						inflection_point = i
+
+				force_cap = 0
+				max_first_deriv = max(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point])
+				for index, value in enumerate(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
+					if value == max_first_deriv:
+						force_cap = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][index]
+				
 				force_ext = []
 				dist_ext= []
 				time_ext = []
@@ -1028,6 +1062,16 @@ def auto_force_scale() -> None:
 				curve.dataframe_retraction = pd.DataFrame({"Force_Retraction": force_ret, "Distance_Retraction": dist_ret, "Time_Retraction": time_ret})
 
 				curve.trimmed=True
+
+				curve.ymax = force_cap
+				curve.ymin = -5
+				if curve.plot_time == True:
+					curve.xmin = min(time_ext)
+					curve.xmax = max(time_ext)
+				else:
+					curve.xmin = min(dist_ext)
+					curve.xmax = max(dist_ext)
+
 				curve.current_plotted_trimmed="extension"
 
 		if curve.has_fit == False: # if the curve is not already fit, then fit the trimmed data.
@@ -1062,7 +1106,8 @@ def auto_force_scale() -> None:
 	for curve in GLOBALVARS.selected_files:
 		curve.processed_dataframe["Processed_Force"] = curve.processed_dataframe["Processed_Force"] * mean_force_correction
 		curve.is_force_scaled = True
-
+	
+	update_trim_entries_ui()
 	replot_canvas()
 			
 
