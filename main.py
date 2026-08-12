@@ -80,7 +80,6 @@ class FD():
 		distance_to_time_conversion: list[float] = (time_data - zero_time)/1000000000
 
 		# Compute derivatives of the raw data, useful for data trimming
-		print(GLOBALVARS.frame_rate, GLOBALVARS.extension_speed_um_s)
 		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, 0.75*GLOBALVARS.frame_rate/GLOBALVARS.extension_speed_um_s, 2)
 		first_derivative = [derivatives[0], derivatives[1]]
 		second_derivative = [derivatives[0], derivatives[2]]
