@@ -80,6 +80,7 @@ class FD():
 		distance_to_time_conversion: list[float] = (time_data - zero_time)/1000000000
 
 		# Compute derivatives of the raw data, useful for data trimming
+		print(GLOBALVARS.frame_rate, GLOBALVARS.extension_speed_um_s)
 		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, 0.75*GLOBALVARS.frame_rate/GLOBALVARS.extension_speed_um_s, 2)
 		first_derivative = [derivatives[0], derivatives[1]]
 		second_derivative = [derivatives[0], derivatives[2]]
@@ -483,6 +484,7 @@ def open_folder() -> list[str]:
 	folder_path: str = filedialog.askdirectory()
 	h5_files = []
 	if folder_path != "":
+		initiate_session()
 		files: list[str] = os.listdir(folder_path)
 		try:
 			GLOBALVARS.output_directory = os.path.join(folder_path,"FDPLOT_OUTPUT")
@@ -502,14 +504,13 @@ def open_folder() -> list[str]:
 			FD_curve = FD(os.path.join(folder_path,file))
 			GLOBALVARS.all_files.append(FD_curve)
 			listbox_all_h5_files.insert(tk.END,FD_curve.name)	
-		initiate_session()
 	
 def initiate_session() -> None:	
 	frame_session_initialisation.grid_remove()
 
 	frame_graphing_windows.grid()
 	frame_input_buttons.grid()
-
+	
 	GLOBALVARS.frame_rate = float(entry_frame_rate.get())
 	GLOBALVARS.extension_speed_um_s = float(entry_extension_speed.get())
 
