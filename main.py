@@ -28,7 +28,7 @@ class GLOBALVARS():
 		self.output_directory: str = ""
 		self.graph_image = None
 		self.extension_speed_um_s: float = 0.15
-		self.frame_rate: int = 101
+		self.frame_rate: int = 100
 		self.baseline_curve = pd.DataFrame({"Force": [], "Distance": []})
 		self.show_first_deriv = True
 		self.show_second_deriv = True
