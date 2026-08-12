@@ -27,8 +27,8 @@ class GLOBALVARS():
 		self.active_file = None
 		self.output_directory: str = ""
 		self.graph_image = None
-		self.extension_speed_um_s: float = 0.5
-		self.frame_rate: int = 80
+		self.extension_speed_um_s: float = 0.15
+		self.frame_rate: int = 101
 		self.baseline_curve = pd.DataFrame({"Force": [], "Distance": []})
 		self.show_first_deriv = True
 		self.show_second_deriv = True
@@ -80,7 +80,7 @@ class FD():
 		distance_to_time_conversion: list[float] = (time_data - zero_time)/1000000000
 
 		# Compute derivatives of the raw data, useful for data trimming
-		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, GLOBALVARS.frame_rate/2, 2)
+		derivatives: list = self.differentiate_savgol(distance_to_time_conversion, force_data, 0.75*GLOBALVARS.frame_rate/GLOBALVARS.extension_speed_um_s, 2)
 		first_derivative = [derivatives[0], derivatives[1]]
 		second_derivative = [derivatives[0], derivatives[2]]
 
@@ -420,7 +420,7 @@ class FD():
 
 			
 			# Compute derivatives of the raw data, useful for data trimming
-			derivatives: list = self.differentiate_savgol(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], GLOBALVARS.frame_rate/2, 2)
+			derivatives: list = self.differentiate_savgol(self.processed_dataframe["Processed_Time"], self.processed_dataframe["Processed_Force"], 0.75*GLOBALVARS.frame_rate/GLOBALVARS.extension_speed_um_s, 2)
 			first_derivative = [derivatives[0], derivatives[1]]
 			second_derivative = [derivatives[0], derivatives[2]]
 
@@ -449,6 +449,33 @@ class FD():
 		self.fc_e: float = 0
 		self.fc_r: float = 0
 
+def on_startup() -> None:
+	frame_graphing_windows.grid_remove()
+	frame_input_buttons.grid_remove()
+
+	frame_session_initialisation.grid(row=1, column=1, padx=2, ipadx=2)
+
+	label_initialisation_blurb.grid(row=0, column=0,columnspan = 3, sticky=tk.NSEW, pady=10)
+	label_initialisation_framerate.grid(row=1, column=0, sticky=tk.E)
+	label_initialisation_extension_speed.grid(row=2, column=0, sticky=tk.E)
+	label_initialisation_extension_speed_units.grid(row=2, column=2, sticky=tk.W)
+	label_initialisation_framerate_units.grid(row=2, column=1, sticky=tk.W)
+
+	# Set key optical settings used in the session for savgol filter smoothing
+	entry_frame_rate.insert(0, str(GLOBALVARS.frame_rate))
+	entry_frame_rate.grid(row=1, column=1, sticky=[tk.W])
+	entry_extension_speed.insert(0, str(GLOBALVARS.extension_speed_um_s))
+	entry_extension_speed.grid(row=2, column=1, sticky=tk.W)
+
+	# Combobox for selecting whether to use Force 2x / Trap 2 etc
+	x_variable_combo["values"] = ["Distance 1", "Distance 2"]
+	x_variable_combo.current(0)
+	x_variable_combo.grid(row=3, column=0, pady=10)
+
+	y_variable_combo["values"] = ["Force 2x", "Force 2y", "Trap 2"]
+	y_variable_combo.current(2)
+	y_variable_combo.grid(row=3, column=2, pady=10)
+
 # Handle loading a folder of h5 files into the program
 # NOTE: files are kept in RAM. If opening thousands this
 # might cause an issue, but it is highly unlikely
@@ -475,8 +502,17 @@ def open_folder() -> list[str]:
 			FD_curve = FD(os.path.join(folder_path,file))
 			GLOBALVARS.all_files.append(FD_curve)
 			listbox_all_h5_files.insert(tk.END,FD_curve.name)	
-		
-		
+		initiate_session()
+	
+def initiate_session() -> None:	
+	frame_session_initialisation.grid_remove()
+
+	frame_graphing_windows.grid()
+	frame_input_buttons.grid()
+
+	GLOBALVARS.frame_rate = float(entry_frame_rate.get())
+	GLOBALVARS.extension_speed_um_s = float(entry_extension_speed.get())
+
 # Handle selections in the first listbox
 def all_h5_listbox_select(event) -> None:
 	
@@ -1096,7 +1132,8 @@ def auto_force_scale() -> None:
 		force_at_critical_lc = 1
 		for i in range(len(Lc_space)-1):
 			if Lc_space[i] <= critical_Lc and Lc_space[i+1] > critical_Lc:
-				force_at_critical_lc = (curve.processed_dataframe["Processed_Force"][i] + curve.processed_dataframe["Processed_Force"][i+1])/2
+				# Take an average of 5 surrounding data points
+				force_at_critical_lc = (curve.processed_dataframe["Processed_Force"][i] + curve.processed_dataframe["Processed_Force"][i+1]+curve.processed_dataframe["Processed_Force"][i+2]+curve.processed_dataframe["Processed_Force"][i-1]+curve.processed_dataframe["Processed_Force"][i-2] )/5
 		force_correction_factor = 110/force_at_critical_lc
 		force_corrections.append(force_correction_factor)
 
@@ -1289,7 +1326,6 @@ frame_graphing_windows.rowconfigure(1, weight=0)
 frame_graphing_windows.rowconfigure(2, weight=0)
 frame_graphing_windows.rowconfigure(3, weight=0)
 
-
 frame_input_buttons = tk.Frame(master=window)
 frame_input_buttons.grid(row=2, column=1)
 
@@ -1306,18 +1342,23 @@ frame_graph_settings.columnconfigure(7, weight=1)
 frame_graph_settings.columnconfigure(8, weight=0)
 frame_graph_settings.rowconfigure(0, weight=1)
 
+
+frame_session_initialisation = tk.Frame(master=window, borderwidth=1, relief = "flat")
+label_initialisation_blurb = tk.Label(master = frame_session_initialisation, text="Please initialise key session variables:")
+label_initialisation_framerate = tk.Label(master = frame_session_initialisation, text="Frame Rate:")
+label_initialisation_extension_speed = tk.Label(master = frame_session_initialisation, text="Extension Speed:")
+label_initialisation_extension_speed_units = tk.Label(master=frame_session_initialisation, text="\u03bcm/s")
+label_initialisation_framerate_units = tk.Label(master=frame_session_initialisation, text="Hz")
+entry_frame_rate = tk.Entry(master=frame_session_initialisation, width=3)
+entry_extension_speed = tk.Entry(master=frame_session_initialisation, width=4)
+x_variable_combo = ttk.Combobox(master=frame_session_initialisation, state="readonly")
+y_variable_combo = ttk.Combobox(master=frame_session_initialisation, state="readonly")
+
+
+
 title_label = tk.Label(master=frame_title_manager, text="DEMO")
 title_label.pack()
 
-frame_optical_settings = tk.Frame(master=frame_file_managers)
-frame_optical_settings.grid(row=4, column=0, columnspan=3, sticky=[tk.E, tk.W])
-frame_optical_settings.rowconfigure(0, weight=0)
-frame_optical_settings.columnconfigure(0, weight=1)
-frame_optical_settings.columnconfigure(1, weight=1)
-'''
-frame_optical_settings.columnconfigure(2, weight=0)
-frame_optical_settings.columnconfigure(3, weight=1)
-'''
 # File selection listboxes
 
 ## Create listboxes
@@ -1343,32 +1384,6 @@ scrollbar_h_selected_h5.grid(row=2, column=2, sticky=[tk.E, tk.W])
 ## Attach scrollbars to listboxes
 listbox_all_h5_files.config(yscrollcommand=scrollbar_v_all_h5.set,xscrollcommand=scrollbar_h_all_h5.set)
 listbox_all_selected_files.config(yscrollcommand=scrollbar_v_selected_h5.set,xscrollcommand=scrollbar_h_selected_h5.set)
-
-'''
-# Set key optical settings used in the session
-tk.Label(master=frame_optical_settings, text="FPS: ").grid(row=0, column=0, sticky=[tk.E])
-entry_frame_rate = tk.Entry(master=frame_optical_settings, width=3)
-entry_frame_rate.insert(0, str(GLOBALVARS.frame_rate))
-entry_frame_rate.grid(row=0, column=1, sticky=[tk.W])
-tk.Label(master=frame_optical_settings, text="Hz").grid(row=0, column=2, sticky=tk.W)
-#tk.Label(master=frame_optical_settings, text="Extension Speed: ").grid(row=0, column=4, sticky=[tk.E])
-#entry_extension_speed = tk.Entry(master=frame_optical_settings, width=4)
-#entry_extension_speed.insert(0, str(GLOBALVARS.extension_speed_um_s))
-#entry_extension_speed.grid(row=0, column=5, sticky=tk.W)
-#tk.Label(master=frame_optical_settings, text="um/s").grid(row=0, column=6, sticky=tk.W)
-tk.Button(master=frame_optical_settings, text="Update", command=update_optic_settings).grid(row=0, column=3)
-'''
-
-# Combobox for selecting whether to use Force 2x / Trap 2 etc
-x_variable_combo = ttk.Combobox(master=frame_optical_settings, state="readonly")
-x_variable_combo["values"] = ["Distance 1", "Distance 2"]
-x_variable_combo.current(0)
-x_variable_combo.grid(row=0, column=0)
-
-y_variable_combo = ttk.Combobox(master=frame_optical_settings, state="readonly")
-y_variable_combo["values"] = ["Force 2x", "Force 2y", "Trap 2"]
-y_variable_combo.current(2)
-y_variable_combo.grid(row=0, column=1)
 
 # Canvas to display graphs
 canvas_graph_display = tk.Canvas(master=frame_graphing_windows, bg="#856ff8")
@@ -1454,6 +1469,7 @@ Fit_Button = Button(master=frame_input_buttons, text="Fit", command=fit)
 Fit_Button.grid(row=8, column=1)
 
 
-
 canvas_graph_display.bind("<Configure>", window_resize)
+
+on_startup()
 window.mainloop()
