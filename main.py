@@ -584,6 +584,7 @@ def all_selected_listbox_select(event) -> None:
 				scale_select_max_time.set(curve.xmax)
 				scale_select_min_time.set(curve.xmin)
 				curve.plot()
+				update_trim_entries_ui()
 				update_canvas()
 
 def toggle_time() -> None:
