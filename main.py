@@ -998,6 +998,7 @@ def baseline_correction():
 	if len(GLOBALVARS.baseline_curve["Distance"]) > 1:
 		for curve in GLOBALVARS.selected_files:
 			curve.subtract_baseline(GLOBALVARS.baseline_curve["Distance"], GLOBALVARS.baseline_curve["Force"])
+			recalculate_derivatives(curve)
 
 	replot_canvas()
 
@@ -1143,6 +1144,8 @@ def auto_force_scale() -> None:
 	# apply the force correction to every selected curve.
 	for curve in GLOBALVARS.selected_files:
 		curve.processed_dataframe["Processed_Force"] = curve.processed_dataframe["Processed_Force"] * mean_force_correction
+		curve.first_derivative_dataframe["First_Derivative"] = curve.first_derivative_dataframe["First_Derivative"] * mean_force_correction
+		curve.second_derivative_dataframe["Second_Derivative"] = curve.first_derivative_dataframe["Second_Derivative"] * mean_force_correction
 		curve.is_force_scaled = True
 	
 	update_trim_entries_ui()
@@ -1241,6 +1244,76 @@ def auto_fc() -> None:
 
 		
 		replot_canvas()
+
+
+def options_popup() -> None:
+
+	def update_options_settings() -> None:
+		GLOBALVARS.frame_rate = float(entry_popup_frame_rate.get())
+		GLOBALVARS.extension_speed_um_s = float(entry_popup_extension_speed.get())
+
+	popup_window = tk.Toplevel()
+	popup_window.rowconfigure(0,weight=1)
+	popup_window.columnconfigure(0,weight=1)
+
+	popup_frame = tk.Frame(master=popup_window)
+	popup_frame.grid(row=0, column=0)
+
+	label_popup_framerate = tk.Label(master = popup_frame, text="Frame Rate:")
+	label_popup_extension_speed = tk.Label(master = popup_frame, text="Extension Speed:")
+	label_popup_extension_speed_units = tk.Label(master= popup_frame, text="\u03bcm/s")
+	label_popup_framerate_units = tk.Label(master= popup_frame, text="Hz")
+	entry_popup_frame_rate = tk.Entry(master= popup_frame, width=3)
+	entry_popup_extension_speed = tk.Entry(master= popup_frame, width=4)
+	popup_x_variable_combo = ttk.Combobox(master= popup_frame, state="readonly")
+	popup_y_variable_combo = ttk.Combobox(master= popup_frame, state="readonly")
+
+
+	label_popup_framerate.grid(row=0, column=0, sticky=tk.E)
+	label_popup_extension_speed.grid(row=1, column=0, sticky=tk.E)
+	label_popup_extension_speed_units.grid(row=1, column=2, sticky=tk.W)
+	label_popup_framerate_units.grid(row=0, column=2, sticky=tk.W)
+
+	# Set key optical settings used in the session for savgol filter smoothing
+	entry_popup_frame_rate.insert(0, str(GLOBALVARS.frame_rate))
+	entry_popup_frame_rate.grid(row=0, column=1)
+	entry_popup_extension_speed.insert(0, str(GLOBALVARS.extension_speed_um_s))
+	entry_popup_extension_speed.grid(row=1, column=1)
+
+	# Combobox for selecting whether to use Force 2x / Trap 2 etc
+	popup_x_variable_combo["values"] = ["Distance 1", "Distance 2"]
+	popup_x_variable_combo.current(0)
+	popup_x_variable_combo.grid(row=2, column=0, pady=10)
+
+	popup_y_variable_combo["values"] = ["Force 2x", "Force 2y", "Trap 2"]
+	popup_y_variable_combo.current(2)
+	popup_y_variable_combo.grid(row=2, column=2, pady=10)
+
+	popup_update_button = tk.Button(master=popup_frame,text="Update", command=update_options_settings)
+	popup_update_button.grid(row=3, column=1, pady=10)
+
+
+def recalculate_derivatives(curve=None) -> None:
+	if GLOBALVARS.active_file != None and curve==None:
+		# Compute derivatives of the processed data, useful for data trimming
+		derivatives: list = GLOBALVARS.active_file.differentiate_savgol(GLOBALVARS.active_file.processed_dataframe["Processed_Time"], GLOBALVARS.active_file.processed_dataframe["Processed_Force"], 0.75*GLOBALVARS.frame_rate/GLOBALVARS.extension_speed_um_s, 2)
+		first_derivative = [derivatives[0], derivatives[1]]
+		second_derivative = [derivatives[0], derivatives[2]]
+
+		GLOBALVARS.active_file.first_derivative_dataframe = pd.DataFrame({"First_Derivative": first_derivative[1], "Time": first_derivative[0], "Distance": GLOBALVARS.active_file.processed_dataframe["Processed_Distance"]})
+		GLOBALVARS.active_file.second_derivative_dataframe = pd.DataFrame({"Second_Derivative": second_derivative[1], "Time": second_derivative[0], "Distance": GLOBALVARS.active_file.processed_dataframe["Processed_Distance"]})
+
+		replot_canvas()
+
+	elif curve != None:
+		derivatives: list = curve.differentiate_savgol(curve.processed_dataframe["Processed_Time"], curve.processed_dataframe["Processed_Force"], 0.75*GLOBALVARS.frame_rate/GLOBALVARS.extension_speed_um_s, 2)
+		first_derivative = [derivatives[0], derivatives[1]]
+		second_derivative = [derivatives[0], derivatives[2]]
+
+		curve.first_derivative_dataframe = pd.DataFrame({"First_Derivative": first_derivative[1], "Time": first_derivative[0], "Distance": curve.processed_dataframe["Processed_Distance"]})
+		curve.second_derivative_dataframe = pd.DataFrame({"Second_Derivative": second_derivative[1], "Time": second_derivative[0], "Distance": curve.processed_dataframe["Processed_Distance"]})
+
+
 '''
  |------------------|
  |  GUI management  |
@@ -1280,12 +1353,12 @@ file_menu.add_command(label='Exit',command=window.destroy)
 selection_menu = Menu(menubar)
 selection_menu.add_command(label='Select Highlighted Curves',command=add_selected_curves)
 selection_menu.add_command(label='Deselect Highlighted Curves',command=deselect_curves)
+selection_menu.add_command(label='Mark Curve as Baseline',command=mark_baseline)
+selection_menu.add_command(label='Mark Curve as Reference',command=mark_reference)
+selection_menu.add_command(label='Recalculate Derivatives',command=recalculate_derivatives)
 
 # Create the selection options
 calibration_menu = Menu(menubar)
-selection_menu.add_command(label='Mark Curve as Baseline',command=mark_baseline)
-selection_menu.add_command(label='Mark Curve as Reference',command=mark_reference)
-
 calibration_menu.add_command(label='View Baseline',command=view_baseline)
 calibration_menu.add_command(label='Load Baseline',command=load_baseline)
 calibration_menu.add_command(label='Save Baseline',command=save_baseline)
@@ -1303,6 +1376,7 @@ menubar.add_cascade(label="File",menu=file_menu)
 menubar.add_cascade(label="Selection",menu=selection_menu)
 menubar.add_cascade(label="Calibration",menu=calibration_menu)
 menubar.add_cascade(label="View",menu=view_menu)
+menubar.add_command(label="Options",command=options_popup)
 
 frame_title_manager = tk.Frame(master=window)
 frame_title_manager.grid(row=0, column=0, columnspan=2)
