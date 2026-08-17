@@ -49,6 +49,8 @@ class FD():
 		self.xmax: float = 0
 		self.ymin: float = 0
 		self.ymax: float = 0
+		self.sigma_e: float = 0
+		self.sigma_r: float = 0
 		self.trimmed = False
 		self.has_fit: bool = False
 		self.baseline: bool = False
@@ -539,8 +541,8 @@ def all_h5_listbox_select(event) -> None:
 					GLOBALVARS.files_awaiting_selection.append(curve)
 					scale_select_max_time.set(curve.xmax)
 					scale_select_min_time.set(curve.xmin)
-					curve.plot()
-					update_canvas()
+					#curve.plot()
+					replot_canvas()
 
 		else: # We have a multifile selection
 			highlighted_files: list[str] = [listbox_all_h5_files.get(i) for i in indecies_highlighted_files_names]
@@ -558,8 +560,8 @@ def all_h5_listbox_select(event) -> None:
 								scale_select_min_time.configure(from_ = min(curve.dataframe["Time"]), to = max(curve.dataframe["Time"]))
 							scale_select_max_time.set(0)
 							scale_select_min_time.set(0)
-							curve.plot()
-							update_canvas()
+							#curve.plot()
+							replot_canvas()
 	else:
 		GLOBALVARS.files_awaiting_selection = []
 						
@@ -583,9 +585,9 @@ def all_selected_listbox_select(event) -> None:
 					scale_select_min_time.configure(from_ = min(curve.dataframe["Time"]), to = max(curve.dataframe["Time"]))
 				scale_select_max_time.set(curve.xmax)
 				scale_select_min_time.set(curve.xmin)
-				curve.plot()
+				#curve.plot()
 				update_trim_entries_ui()
-				update_canvas()
+				replot_canvas()
 
 def toggle_time() -> None:
 	if GLOBALVARS.active_file != None:
@@ -638,6 +640,10 @@ def update_trim_settings() -> None:
 		GLOBALVARS.active_file.xmax = float(entry_xmax.get())
 		GLOBALVARS.active_file.ymin = float(entry_ymin.get())
 		GLOBALVARS.active_file.ymax = float(entry_ymax.get())
+		
+		scale_select_max_time.set(float(entry_xmax.get()))
+		scale_select_min_time.set(float(entry_xmin.get()))
+
 		replot_canvas()
 
 def update_trim_entries_ui() -> None:
@@ -661,11 +667,18 @@ def replot_canvas(expanded_graph = False) -> None:
 		GLOBALVARS.graph_image = tk.PhotoImage(file="TEMP_PLOT.png")
 		canvas_graph_display.create_image(0,0,image=GLOBALVARS.graph_image, anchor="nw")
 
+		if GLOBALVARS.active_file.sigma_e != 0:
+			sigma_display.config(state="normal")
+			sigma_display.delete(0,tk.END)
+			sigma_display.insert(0,str(float("%.4g" % GLOBALVARS.active_file.sigma_e)))
+			sigma_display.config(state="readonly")
+
+		Lp_display.config(state="normal")
+		Lc_display.config(state="normal")
+		S_display.config(state="normal")
+		F0_display.config(state="normal")
+
 		if GLOBALVARS.active_file.has_fit == True:
-			Lp_display.config(state="normal")
-			Lc_display.config(state="normal")
-			S_display.config(state="normal")
-			F0_display.config(state="normal")
 			Lp_display.delete(0,tk.END)
 			Lc_display.delete(0,tk.END)
 			S_display.delete(0,tk.END)
@@ -680,10 +693,17 @@ def replot_canvas(expanded_graph = False) -> None:
 				Lc_display.insert(0,str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["Lc_ret"][0])))
 				S_display.insert(0,str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["S_ret"][0])))
 				F0_display.insert(0,str(float("%.4g" % GLOBALVARS.active_file.fit_parameters["F0_ret"][0])))
-			Lp_display.config(state="readonly")
-			Lc_display.config(state="readonly")
-			S_display.config(state="readonly")
-			F0_display.config(state="readonly")
+		else:
+			Lp_display.delete(0,tk.END)
+			Lc_display.delete(0,tk.END)
+			S_display.delete(0,tk.END)
+			F0_display.delete(0,tk.END)
+
+		Lp_display.config(state="readonly")
+		Lc_display.config(state="readonly")
+		S_display.config(state="readonly")
+		F0_display.config(state="readonly")
+
 
 def window_resize(event) -> None:
 	replot_canvas()
@@ -1145,7 +1165,7 @@ def auto_force_scale() -> None:
 	for curve in GLOBALVARS.selected_files:
 		curve.processed_dataframe["Processed_Force"] = curve.processed_dataframe["Processed_Force"] * mean_force_correction
 		curve.first_derivative_dataframe["First_Derivative"] = curve.first_derivative_dataframe["First_Derivative"] * mean_force_correction
-		curve.second_derivative_dataframe["Second_Derivative"] = curve.first_derivative_dataframe["Second_Derivative"] * mean_force_correction
+		curve.second_derivative_dataframe["Second_Derivative"] = curve.second_derivative_dataframe["Second_Derivative"] * mean_force_correction
 		curve.is_force_scaled = True
 	
 	update_trim_entries_ui()
@@ -1156,9 +1176,9 @@ def expand_graph() -> None:
 	replot_canvas(True)
 
 def export_data() -> None:
-	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": [], "Fc-e": [], "Fc-r": []}
+	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": [], "Fc-e": [], "Fc-r": [], "sigma_e" : []}
 	for file in GLOBALVARS.selected_files:
-		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]}),pd.DataFrame({"x_variable": [x_variable_combo.get()]}) ,pd.DataFrame({"y_variable": [y_variable_combo.get()]})], axis = 1)
+		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"sigma_e": [file.sigma_e]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]}),pd.DataFrame({"x_variable": [x_variable_combo.get()]}) ,pd.DataFrame({"y_variable": [y_variable_combo.get()]})], axis = 1)
 		output_data.to_csv(os.path.join(GLOBALVARS.output_directory, file.name+".csv"), index=False)
 
 		if file.has_fit == True:
@@ -1313,7 +1333,124 @@ def recalculate_derivatives(curve=None) -> None:
 		curve.first_derivative_dataframe = pd.DataFrame({"First_Derivative": first_derivative[1], "Time": first_derivative[0], "Distance": curve.processed_dataframe["Processed_Distance"]})
 		curve.second_derivative_dataframe = pd.DataFrame({"Second_Derivative": second_derivative[1], "Time": second_derivative[0], "Distance": curve.processed_dataframe["Processed_Distance"]})
 
+def supercoiling_density_estimation() -> None:
 
+	# Length at 70pN:
+	# f(x) = -1.0407x + 1.1
+	# R2 = 0.9975
+	# X shifted to start at 0,0, forced intercept at 0,0, equation shifted back
+	def formula(relative_length_via_lc) -> float:
+		return -1.0407*relative_length_via_lc+1.1
+
+	reference_curves = []
+	contour_lengths = []	
+	
+	for curve in GLOBALVARS.selected_files:
+		if curve.reference == True:
+			reference_curves.append(curve)
+
+	for curve in reference_curves:
+		if curve.trimmed == False: # if the curve is not nicely trimmed already, attempt to do it automatically. Copy of the function before.
+			inflection_point = 0
+			max_force = 0
+			for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
+				if curve.processed_dataframe["Processed_Force"][i] > max_force and curve.processed_dataframe["Processed_Force"][i] > curve.processed_dataframe["Processed_Force"][i+1]:	
+					max_force = curve.processed_dataframe["Processed_Force"][i]
+					inflection_point = i
+
+			force_cap = 0
+			max_first_deriv = max(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point])
+			for index, value in enumerate(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
+				if value == max_first_deriv:
+					force_cap = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][index]
+			
+			force_ext = []
+			dist_ext= []
+			time_ext = []
+			force_ret = []
+			dist_ret = []
+			time_ret = []
+
+			for i in range(len(curve.processed_dataframe["Processed_Force"][0:inflection_point])):
+				if curve.processed_dataframe["Processed_Force"][i] < force_cap:
+					force_ext.append(curve.processed_dataframe["Processed_Force"][i])
+					time_ext.append(curve.processed_dataframe["Processed_Time"][i])
+					dist_ext.append(curve.processed_dataframe["Processed_Distance"][i])
+
+			for i in range(len(curve.processed_dataframe["Processed_Force"][inflection_point+1:])):
+				if curve.processed_dataframe["Processed_Force"][inflection_point+i+1] < force_cap:
+					force_ret.append(curve.processed_dataframe["Processed_Force"][inflection_point+i+1])
+					time_ret.append(curve.processed_dataframe["Processed_Time"][inflection_point+i+1])
+					dist_ret.append(curve.processed_dataframe["Processed_Distance"][inflection_point+i+1])
+
+			curve.dataframe_extension = pd.DataFrame({"Force_Extension": force_ext, "Distance_Extension": dist_ext, "Time_Extension": time_ext})
+			curve.dataframe_retraction = pd.DataFrame({"Force_Retraction": force_ret, "Distance_Retraction": dist_ret, "Time_Retraction": time_ret})
+
+			curve.trimmed = True
+
+			curve.ymax = force_cap
+			curve.ymin = -5
+			if curve.plot_time == True:
+				curve.xmin = min(time_ext)
+				curve.xmax = max(time_ext)
+			else:
+				curve.xmin = min(dist_ext)
+				curve.xmax = max(dist_ext)
+
+			curve.current_plotted_trimmed="extension"
+
+		if curve.has_fit == False: # if the curve is not already fit, then fit the trimmed data.
+			fit_result = fit_eOdijk_F0(curve.dataframe_extension["Distance_Extension"], curve.dataframe_extension["Force_Extension"])
+			curve.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": [], "Fit_Distance_Extension": []})
+			curve.fit_dataframe_extension["Fit_Force_Extension"] = fit_result[2]
+			curve.fit_dataframe_extension["Fit_Distance_Extension"] = curve.dataframe_extension["Distance_Extension"]
+			curve.fit_parameters["Lp_ext"] = [fit_result[0][0], fit_result[1][0]]
+			curve.fit_parameters["Lc_ext"] = [fit_result[0][1], fit_result[1][1]]
+			curve.fit_parameters["S_ext"] = [fit_result[0][2], fit_result[1][2]]
+			curve.fit_parameters["F0_ext"] = [fit_result[0][3], fit_result[1][3]]
+
+			curve.has_fit = True
+		contour_lengths.append(curve.fit_parameters["Lc_ext"][0])
+	
+	mean_Lc = np.mean(contour_lengths)
+
+	for curve in GLOBALVARS.selected_files:
+		if curve.trimmed == True and curve.dataframe_extension["Force_Extension"].iloc[-1] >= 70:
+			force_index = 0
+			for i in range(len(curve.dataframe_extension["Force_Extension"])):
+				if curve.dataframe_extension["Force_Extension"][i] >= 70 and curve.dataframe_extension["Force_Extension"][i-1] < 70:
+					force_index = i
+			distance_at_70 = curve.dataframe_extension["Distance_Extension"][force_index]
+			curve.sigma_e = formula(distance_at_70 / mean_Lc)
+
+		else: # Do not save this temporary trim
+			inflection_point = 0
+			max_force = 0
+			for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
+				if curve.processed_dataframe["Processed_Force"][i] > max_force and curve.processed_dataframe["Processed_Force"][i] > curve.processed_dataframe["Processed_Force"][i+1]:	
+					max_force = curve.processed_dataframe["Processed_Force"][i]
+					inflection_point = i
+			
+			force_ext = []
+			dist_ext= []
+			time_ext = []
+
+			for i in range(len(curve.processed_dataframe["Processed_Force"][0:inflection_point])):
+				force_ext.append(curve.processed_dataframe["Processed_Force"][i])
+				time_ext.append(curve.processed_dataframe["Processed_Time"][i])
+				dist_ext.append(curve.processed_dataframe["Processed_Distance"][i])
+
+			if force_ext[-1] >= 70:
+				for i in range(len(force_ext)):
+					if force_ext[i] >= 70 and force_ext[i-1] < 70:
+						force_index = i
+				distance_at_70 = dist_ext[force_index]
+				curve.sigma_e = formula(distance_at_70 / mean_Lc)
+				print(curve.name, curve.sigma_e)
+	
+	replot_canvas()	
+		
+				
 '''
  |------------------|
  |  GUI management  |
@@ -1365,7 +1502,7 @@ calibration_menu.add_command(label='Save Baseline',command=save_baseline)
 calibration_menu.add_command(label='Calculate Baseline',command=calculate_baseline)
 calibration_menu.add_command(label='Subtract Baseline',command=baseline_correction)
 calibration_menu.add_command(label='Auto Force Scale',command=auto_force_scale)
-calibration_menu.add_command(label='Calculate Supercoiling Density',command=baseline_correction)
+calibration_menu.add_command(label='Calculate Supercoiling Density',command=supercoiling_density_estimation)
 
 view_menu = Menu(menubar)
 view_menu.add_command(label='Toggle First Derivative',command=toggle_first_derivative)
@@ -1543,6 +1680,9 @@ F0_display.grid(row=5, column=3, sticky=tk.EW)
 Fit_Button = Button(master=frame_input_buttons, text="Fit", command=fit)
 Fit_Button.grid(row=8, column=1)
 
+tk.Label(master=frame_input_buttons, text="Sigma:").grid(row=9, column=2, sticky=tk.E)
+sigma_display = tk.Entry(master=frame_input_buttons, text="", state="readonly",width=6)
+sigma_display.grid(row=9, column=3, sticky=tk.EW)
 
 canvas_graph_display.bind("<Configure>", window_resize)
 
