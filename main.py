@@ -1194,6 +1194,7 @@ def export_data() -> None:
 			fit_params["F0-r"].append(file.fit_parameters["F0_ret"][0])
 			fit_params["Fc-e"].append(file.fc_e)
 			fit_params["Fc-r"].append(file.fc_r)
+			fit_params["sigma_e"].append(file.sigma_e)
 
 	out = pd.DataFrame(fit_params)
 	out.to_csv(os.path.join(GLOBALVARS.output_directory,"FIT_PARAMETERS.csv"), index=False)
