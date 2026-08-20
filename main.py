@@ -1415,6 +1415,34 @@ def supercoiling_density_estimation() -> None:
 	
 	mean_Lc = np.mean(contour_lengths)
 
+	ref_lc_distance_at_70 = []
+
+	for curve in reference_curves:
+		inflection_point = 0
+		max_force = 0
+		for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
+			if curve.processed_dataframe["Processed_Force"][i] > max_force and curve.processed_dataframe["Processed_Force"][i] > curve.processed_dataframe["Processed_Force"][i+1]:	
+				max_force = curve.processed_dataframe["Processed_Force"][i]
+				inflection_point = i
+		
+		force_ext = []
+		dist_ext= []
+		time_ext = []
+
+		for i in range(len(curve.processed_dataframe["Processed_Force"][0:inflection_point])):
+			force_ext.append(curve.processed_dataframe["Processed_Force"][i])
+			time_ext.append(curve.processed_dataframe["Processed_Time"][i])
+			dist_ext.append(curve.processed_dataframe["Processed_Distance"][i])
+
+		if force_ext[-1] >= 70:
+			for i in range(len(force_ext)):
+				if force_ext[i] >= 70 and force_ext[i-1] < 70:
+					force_index = i
+			ref_lc_distance_at_70.append(dist_ext[force_index] / mean_Lc)
+
+	fudge_factor = 1.05697 / np.mean(ref_lc_distance_at_70) # From leger 1999 data, sigma 0 = 1.05697 xLc
+	print(fudge_factor, 1.05697, np.mean(ref_lc_distance_at_70))
+
 	for curve in GLOBALVARS.selected_files:
 		if curve.trimmed == True and curve.dataframe_extension["Force_Extension"].iloc[-1] >= 70:
 			force_index = 0
@@ -1422,7 +1450,7 @@ def supercoiling_density_estimation() -> None:
 				if curve.dataframe_extension["Force_Extension"][i] >= 70 and curve.dataframe_extension["Force_Extension"][i-1] < 70:
 					force_index = i
 			distance_at_70 = curve.dataframe_extension["Distance_Extension"][force_index]
-			curve.sigma_e = formula(distance_at_70 / mean_Lc)
+			curve.sigma_e = formula((distance_at_70 / mean_Lc)*fudge_factor)
 
 		else: # Do not save this temporary trim
 			inflection_point = 0
@@ -1446,8 +1474,7 @@ def supercoiling_density_estimation() -> None:
 					if force_ext[i] >= 70 and force_ext[i-1] < 70:
 						force_index = i
 				distance_at_70 = dist_ext[force_index]
-				curve.sigma_e = formula(distance_at_70 / mean_Lc)
-				print(curve.name, curve.sigma_e)
+				curve.sigma_e = formula((distance_at_70 / mean_Lc)*fudge_factor)
 	
 	replot_canvas()	
 		
