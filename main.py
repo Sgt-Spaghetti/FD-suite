@@ -1341,7 +1341,9 @@ def supercoiling_density_estimation() -> None:
 	# R2 = 0.9975
 	# X shifted to start at 0,0, forced intercept at 0,0, equation shifted back
 	def formula(relative_length_via_lc) -> float:
-		return -1.0407*relative_length_via_lc+1.1
+		#return -1.0407*relative_length_via_lc+1.1
+		return -1.04141820566195*relative_length_via_lc+1.10074780083851
+		
 
 	reference_curves = []
 	contour_lengths = []	
@@ -1415,7 +1417,7 @@ def supercoiling_density_estimation() -> None:
 	
 	mean_Lc = np.mean(contour_lengths)
 
-	ref_lc_distance_at_70 = []
+	ref_sigma_values = []
 
 	for curve in reference_curves:
 		inflection_point = 0
@@ -1438,10 +1440,9 @@ def supercoiling_density_estimation() -> None:
 			for i in range(len(force_ext)):
 				if force_ext[i] >= 70 and force_ext[i-1] < 70:
 					force_index = i
-			ref_lc_distance_at_70.append(dist_ext[force_index] / mean_Lc)
+			ref_sigma_values.append(formula((dist_ext[force_index] / mean_Lc)))
 
-	fudge_factor = 1.05697 / np.mean(ref_lc_distance_at_70) # From leger 1999 data, sigma 0 = 1.05697 xLc
-	print(fudge_factor, 1.05697, np.mean(ref_lc_distance_at_70))
+	offset_factor = np.mean(ref_sigma_values) # Offset, sigma 0 should give 0
 
 	for curve in GLOBALVARS.selected_files:
 		if curve.trimmed == True and curve.dataframe_extension["Force_Extension"].iloc[-1] >= 70:
@@ -1450,7 +1451,7 @@ def supercoiling_density_estimation() -> None:
 				if curve.dataframe_extension["Force_Extension"][i] >= 70 and curve.dataframe_extension["Force_Extension"][i-1] < 70:
 					force_index = i
 			distance_at_70 = curve.dataframe_extension["Distance_Extension"][force_index]
-			curve.sigma_e = formula((distance_at_70 / mean_Lc)*fudge_factor)
+			curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
 
 		else: # Do not save this temporary trim
 			inflection_point = 0
@@ -1474,7 +1475,7 @@ def supercoiling_density_estimation() -> None:
 					if force_ext[i] >= 70 and force_ext[i-1] < 70:
 						force_index = i
 				distance_at_70 = dist_ext[force_index]
-				curve.sigma_e = formula((distance_at_70 / mean_Lc)*fudge_factor)
+				curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
 	
 	replot_canvas()	
 		
