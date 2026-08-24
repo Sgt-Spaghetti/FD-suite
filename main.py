@@ -1362,10 +1362,10 @@ def supercoiling_density_estimation() -> None:
 					inflection_point = i
 
 			force_cap = 0
-			max_first_deriv = max(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point])
-			for index, value in enumerate(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
+			max_first_deriv = max(curve.first_derivative_dataframe["First_Derivative"][0:inflection_point])
+			for index, value in enumerate(curve.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
 				if value == max_first_deriv:
-					force_cap = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][index]
+					force_cap = curve.processed_dataframe["Processed_Force"][index]
 			
 			force_ext = []
 			dist_ext= []
