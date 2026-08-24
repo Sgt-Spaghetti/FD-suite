@@ -49,7 +49,7 @@ class FD():
 		self.xmax: float = 0
 		self.ymin: float = 0
 		self.ymax: float = 0
-		self.sigma_e: float = 0
+		self.sigma_e: float = -100
 		self.sigma_r: float = 0
 		self.trimmed = False
 		self.has_fit: bool = False
@@ -667,7 +667,7 @@ def replot_canvas(expanded_graph = False) -> None:
 		GLOBALVARS.graph_image = tk.PhotoImage(file="TEMP_PLOT.png")
 		canvas_graph_display.create_image(0,0,image=GLOBALVARS.graph_image, anchor="nw")
 
-		if GLOBALVARS.active_file.sigma_e != 0:
+		if GLOBALVARS.active_file.sigma_e != -100:
 			sigma_display.config(state="normal")
 			sigma_display.delete(0,tk.END)
 			sigma_display.insert(0,str(float("%.4g" % GLOBALVARS.active_file.sigma_e)))
@@ -1093,10 +1093,10 @@ def auto_force_scale() -> None:
 						inflection_point = i
 
 				force_cap = 0
-				max_first_deriv = max(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point])
-				for index, value in enumerate(GLOBALVARS.active_file.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
+				max_first_deriv = max(curve.first_derivative_dataframe["First_Derivative"][0:inflection_point])
+				for index, value in enumerate(curve.first_derivative_dataframe["First_Derivative"][0:inflection_point]):
 					if value == max_first_deriv:
-						force_cap = GLOBALVARS.active_file.processed_dataframe["Processed_Force"][index]
+						force_cap = curve.processed_dataframe["Processed_Force"][index]
 				
 				force_ext = []
 				dist_ext= []
