@@ -807,6 +807,12 @@ def all_selected_listbox_select(event) -> None:
 					scale_select_min_time.configure(from_ = min(curve.dataframe["Time"]), to = max(curve.dataframe["Time"]))
 				scale_select_max_time.set(0)
 				scale_select_min_time.set(0)
+			
+				if curve.trimmed_e == False and curve.trimmed_r == False:
+					variable_radio_buttons_view.set("full")
+					variable_checkbutton_set_fit.set(False)
+					variable_checkbutton_view_fit.set(False)
+
 				#curve.plot()
 				update_trim_entries_ui()
 				replot_canvas()
@@ -938,23 +944,23 @@ def toggle_time() -> None:
 					GLOBALVARS.active_file.plot_time = True
 					scale_select_max_time.configure(from_ = min_time, to = max_time)
 					scale_select_min_time.configure(from_ = min_time, to = max_time)
-					active_index_xmin_e = True
-					active_index_xmax_e = True
-					index_xmin_e = 0
-					index_xmax_e = 0
+					active_index_xmin_f_e = True
+					active_index_xmax_f_e = True
+					index_xmin_f_e = 0
+					index_xmax_f_e = 0
 					for i in range(len(GLOBALVARS.active_file.dataframe_extension["Distance_Extension"])-1):
-						if GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i] <= GLOBALVARS.active_file.xmin_e[0] and GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i+1] > GLOBALVARS.active_file.xmin_e[0]:
-							if active_index_xmin_e == True:
-								index_xmin_e = i
-								active_index_xmin_e = False
-						if GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i] <= GLOBALVARS.active_file.xmax_e[0] and GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i+1] > GLOBALVARS.active_file.xmax_e[0]:
-							if active_index_xmax_e == True:
-								index_xmax_e = i
-								active_index_xmax_e = False
-					GLOBALVARS.active_file.xmin_e[1] = GLOBALVARS.active_file.dataframe_extension["Time_Extension"][index_xmin_e]
-					GLOBALVARS.active_file.xmax_e[1] = GLOBALVARS.active_file.dataframe_extension["Time_Extension"][index_xmax_e]
-					scale_select_max_time.set(GLOBALVARS.active_file.xmax_e[1])
-					scale_select_min_time.set(GLOBALVARS.active_file.xmin_e[1])
+						if GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i] <= GLOBALVARS.active_file.xmin_f_e[0] and GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i+1] > GLOBALVARS.active_file.xmin_f_e[0]:
+							if active_index_xmin_f_e == True:
+								index_xmin_f_e = i
+								active_index_xmin_f_e = False
+						if GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i] <= GLOBALVARS.active_file.xmax_f_e[0] and GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][i+1] > GLOBALVARS.active_file.xmax_f_e[0]:
+							if active_index_xmax_f_e == True:
+								index_xmax_f_e = i
+								active_index_xmax_f_e = False
+					GLOBALVARS.active_file.xmin_f_e[1] = GLOBALVARS.active_file.dataframe_extension["Time_Extension"][index_xmin_f_e]
+					GLOBALVARS.active_file.xmax_f_e[1] = GLOBALVARS.active_file.dataframe_extension["Time_Extension"][index_xmax_f_e]
+					scale_select_max_time.set(GLOBALVARS.active_file.xmax_f_e[1])
+					scale_select_min_time.set(GLOBALVARS.active_file.xmin_f_e[1])
 
 					update_trim_entries_ui()
 
@@ -962,23 +968,23 @@ def toggle_time() -> None:
 					GLOBALVARS.active_file.plot_time = False
 					scale_select_max_time.configure(from_ = min_d, to = max_d)
 					scale_select_min_time.configure(from_ = min_d, to = max_d)
-					active_index_xmin_e = True
-					active_index_xmax_e = True
-					index_xmin_e = 0
-					index_xmax_e = 0
+					active_index_xmin_f_e = True
+					active_index_xmax_f_e = True
+					index_xmin_f_e = 0
+					index_xmax_f_e = 0
 					for i in range(len(GLOBALVARS.active_file.dataframe_extension["Time_Extension"])-1):
-						if GLOBALVARS.active_file.dataframe_extension["Time_Extension"][i] <= GLOBALVARS.active_file.xmin_e[1] and GLOBALVARS.active_file.dataframe_extension["Time_Extension"][i+1] > GLOBALVARS.active_file.xmin_e[1]:
-							if active_index_xmin_e == True:
-								index_xmin_e = i
-								active_index_xmin_e = False
-						if GLOBALVARS.active_file.dataframe_extension["Time_Extension"][i] <= GLOBALVARS.active_file.xmax_e[1] and GLOBALVARS.active_file.dataframe_extension["Time_Extension"][i+1] > GLOBALVARS.active_file.xmax_e[1]:
-							if active_index_xmax_e == True:
-								index_xmax_e = i
-								active_index_xmax_e = False
-					GLOBALVARS.active_file.xmin_e[0] = GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][index_xmin_e]
-					GLOBALVARS.active_file.xmax_e[0] = GLOBALVARS.active_file.dataframe_extension["Distance_Extension"][index_xmax_e]
-					scale_select_max_time.set(GLOBALVARS.active_file.xmax_e[0])
-					scale_select_min_time.set(GLOBALVARS.active_file.xmin_e[0])
+						if GLOBALVARS.active_file.dataframe_extension["Time_Extension"].iloc[i] <= GLOBALVARS.active_file.xmin_f_e[1] and GLOBALVARS.active_file.dataframe_extension["Time_Extension"].iloc[i+1] > GLOBALVARS.active_file.xmin_f_e[1]:
+							if active_index_xmin_f_e == True:
+								index_xmin_f_e = i
+								active_index_xmin_f_e = False
+						if GLOBALVARS.active_file.dataframe_extension["Time_Extension"].iloc[i] <= GLOBALVARS.active_file.xmax_f_e[1] and GLOBALVARS.active_file.dataframe_extension["Time_Extension"].iloc[i+1] > GLOBALVARS.active_file.xmax_f_e[1]:
+							if active_index_xmax_f_e == True:
+								index_xmax_f_e = i
+								active_index_xmax_f_e = False
+					GLOBALVARS.active_file.xmin_f_e[0] = GLOBALVARS.active_file.dataframe_extension["Distance_Extension"].iloc[index_xmin_f_e]
+					GLOBALVARS.active_file.xmax_f_e[0] = GLOBALVARS.active_file.dataframe_extension["Distance_Extension"].iloc[index_xmax_f_e]
+					scale_select_max_time.set(GLOBALVARS.active_file.xmax_f_e[0])
+					scale_select_min_time.set(GLOBALVARS.active_file.xmin_f_e[0])
 
 					update_trim_entries_ui()
 
@@ -993,23 +999,23 @@ def toggle_time() -> None:
 					GLOBALVARS.active_file.plot_time = True
 					scale_select_max_time.configure(from_ = min_time, to = max_time)
 					scale_select_min_time.configure(from_ = min_time, to = max_time)
-					active_index_xmin_r = True
-					active_index_xmax_r = True
-					index_xmin_r = 0
-					index_xmax_r = 0
+					active_index_xmin_f_r = True
+					active_index_xmax_f_r = True
+					index_xmin_f_r = 0
+					index_xmax_f_r = 0
 					for i in range(len(GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"])-1):
-						if GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i] >= GLOBALVARS.active_file.xmin_r[0] and GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i+1] < GLOBALVARS.active_file.xmin_r[0]:
-							if active_index_xmin_r == True:
-								index_xmin_r = i
-								#active_index_xmin_r = False
-						if GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i] >= GLOBALVARS.active_file.xmax_r[0] and GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i+1] < GLOBALVARS.active_file.xmax_r[0]:
-							if active_index_xmax_r == True:
-								index_xmax_r = i
-								#active_index_xmax_r = False
-					GLOBALVARS.active_file.xmin_r[1] = GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][index_xmin_r]
-					GLOBALVARS.active_file.xmax_r[1] = GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][index_xmax_r]
-					scale_select_max_time.set(GLOBALVARS.active_file.xmax_r[1])
-					scale_select_min_time.set(GLOBALVARS.active_file.xmin_r[1])
+						if GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i] >= GLOBALVARS.active_file.xmin_f_r[0] and GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i+1] < GLOBALVARS.active_file.xmin_f_r[0]:
+							if active_index_xmin_f_r == True:
+								index_xmin_f_r = i
+								#active_index_xmin_f_r = False
+						if GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i] >= GLOBALVARS.active_file.xmax_f_r[0] and GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][i+1] < GLOBALVARS.active_file.xmax_f_r[0]:
+							if active_index_xmax_f_r == True:
+								index_xmax_f_r = i
+								#active_index_xmax_f_r = False
+					GLOBALVARS.active_file.xmin_f_r[1] = GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][index_xmax_f_r]
+					GLOBALVARS.active_file.xmax_f_r[1] = GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][index_xmin_f_r]
+					scale_select_max_time.set(GLOBALVARS.active_file.xmax_f_r[1])
+					scale_select_min_time.set(GLOBALVARS.active_file.xmin_f_r[1])
 
 					update_trim_entries_ui()
 
@@ -1017,23 +1023,23 @@ def toggle_time() -> None:
 					GLOBALVARS.active_file.plot_time = False
 					scale_select_max_time.configure(from_ = min_d, to = max_d)
 					scale_select_min_time.configure(from_ = min_d, to = max_d)
-					active_index_xmin_r = True
-					active_index_xmax_r = True
-					index_xmin_r = 0
-					index_xmax_r = 0
+					active_index_xmin_f_r = True
+					active_index_xmax_f_r = True
+					index_xmin_f_r = 0
+					index_xmax_f_r = 0
 					for i in range(len(GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"])-1):
-						if GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i] <= GLOBALVARS.active_file.xmin_r[1] and GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i+1] > GLOBALVARS.active_file.xmin_r[1]:
-							if active_index_xmin_r == True:
-								index_xmin_r = i
-								#active_index_xmin_r = False
-						if GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i] <= GLOBALVARS.active_file.xmax_r[1] and GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i+1] > GLOBALVARS.active_file.xmax_r[1]:
-							if active_index_xmax_r == True:
-								index_xmax_r = i
-								#active_index_xmax_r = False
-					GLOBALVARS.active_file.xmin_r[0] = GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][index_xmin_r]
-					GLOBALVARS.active_file.xmax_r[0] = GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][index_xmax_r]
-					scale_select_max_time.set(GLOBALVARS.active_file.xmax_r[0])
-					scale_select_min_time.set(GLOBALVARS.active_file.xmin_r[0])
+						if GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i] <= GLOBALVARS.active_file.xmin_f_r[1] and GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i+1] > GLOBALVARS.active_file.xmin_f_r[1]:
+							if active_index_xmin_f_r == True:
+								index_xmin_f_r = i
+								#active_index_xmin_f_r = False
+						if GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i] <= GLOBALVARS.active_file.xmax_f_r[1] and GLOBALVARS.active_file.dataframe_retraction["Time_Retraction"][i+1] > GLOBALVARS.active_file.xmax_f_r[1]:
+							if active_index_xmax_f_r == True:
+								index_xmax_f_r = i
+								#active_index_xmax_f_r = False
+					GLOBALVARS.active_file.xmin_f_r[0] = GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][index_xmax_f_r]
+					GLOBALVARS.active_file.xmax_f_r[0] = GLOBALVARS.active_file.dataframe_retraction["Distance_Retraction"][index_xmin_f_r]
+					scale_select_max_time.set(GLOBALVARS.active_file.xmax_f_r[0])
+					scale_select_min_time.set(GLOBALVARS.active_file.xmin_f_r[0])
 
 					update_trim_entries_ui()
 
@@ -1592,6 +1598,7 @@ def radio_button_select() -> None:
 					scale_select_min_time.set(GLOBALVARS.active_file.xmin_f_e[1])
 
 
+				update_trim_entries_ui()
 				replot_canvas()
 
 			elif GLOBALVARS.active_file.trimmed_r == True and variable_radio_buttons_view.get() == "retraction" and variable_checkbutton_set_fit.get() == True:
@@ -1607,6 +1614,7 @@ def radio_button_select() -> None:
 					scale_select_min_time.set(GLOBALVARS.active_file.xmin_f_r[1])
 
 
+				update_trim_entries_ui()
 				replot_canvas()
 		else:
 			variable_checkbutton_set_fit.set(False)
@@ -1633,6 +1641,7 @@ def radio_button_select() -> None:
 					scale_select_max_time.set(GLOBALVARS.active_file.xmax_r[1])
 					scale_select_min_time.set(GLOBALVARS.active_file.xmin_r[1])
 
+			update_trim_entries_ui()
 			replot_canvas()
 			
 
