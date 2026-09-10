@@ -705,7 +705,7 @@ def on_startup() -> None:
 # might cause an issue, but it is highly unlikely
 def open_folder() -> list[str]:
 	folder_path: str = filedialog.askdirectory()
-	h5_files = []
+	h5_files: list = []
 	if folder_path != "":
 		initiate_session()
 		files: list[str] = os.listdir(folder_path)
@@ -1930,7 +1930,21 @@ def auto_force_scale() -> None:
 			if curve in GLOBALVARS.selected_files:	
 				auto_split_and_trim(curve)
 
-		if curve.has_fit_e == False and len(curve.dataframe_extension["Distance_Extension"]) > 30: # if the curve is not already fit, then fit the trimmed data.
+		if curve.has_fit_e == False and curve.trimmed_e == True and len(curve.dataframe_extension["Distance_Extension"]) > 30: # if the curve is not already fit, then fit the trimmed data.
+			fc_inflection_point_ext = 0
+			fc_ext = 0
+			max_first_deriv_ext = 0
+
+			for i in range(len(curve.trimmed_first_derivative_dataframe_extension["Trimmed_First_Derivative"])):
+				if curve.trimmed_first_derivative_dataframe_extension["Trimmed_First_Derivative"][i] > max_first_deriv_ext and curve.dataframe_extension["Force_Extension"][i] < 80 and curve.dataframe_extension["Force_Extension"][i] > 4: # shouldn't be above 80pN or below 4pN anyway
+					fc_inflection_point_ext = i
+					max_first_deriv_ext = curve.trimmed_first_derivative_dataframe_extension["Trimmed_First_Derivative"][i]
+					fc_ext = curve.dataframe_extension["Force_Extension"][i]
+
+			curve.fit_dataframe_extension = pd.DataFrame({"Fit_Force_Extension": curve.dataframe_extension["Force_Extension"][0:fc_inflection_point_ext],
+								      "Fit_Distance_Extension": curve.dataframe_extension["Distance_Extension"][0:fc_inflection_point_ext],
+								      "Fit_Time_Extension": curve.dataframe_extension["Time_Extension"][0:fc_inflection_point_ext]})
+
 			fit_result = fit_eOdijk_F0(curve.fit_dataframe_extension["Fit_Distance_Extension"], curve.fit_dataframe_extension["Fit_Force_Extension"])
 			curve.precalculated_fit_extension = pd.DataFrame({"Precalculated_Fit_Force_Extension": fit_result[2], "Precalculated_Fit_Distance_Extension": curve.fit_dataframe_extension["Fit_Distance_Extension"], "Precalculated_Fit_Time_Extension": curve.fit_dataframe_extension["Fit_Time_Extension"]})
 
@@ -1939,9 +1953,33 @@ def auto_force_scale() -> None:
 			curve.fit_parameters["S_ext"] = [fit_result[0][2], fit_result[1][2]]
 			curve.fit_parameters["F0_ext"] = [fit_result[0][3], fit_result[1][3]]
 
-			curve.has_fit_e = True
+			curve.xmin_f_e[0] = curve.fit_dataframe_extension["Fit_Distance_Extension"].iloc[0]
+			curve.xmin_f_e[1] = curve.fit_dataframe_extension["Fit_Time_Extension"].iloc[0]
 
-		if curve.has_fit_r == False and len(curve.dataframe_retraction["Distance_Retraction"]) > 30: # if the curve is not already fit, then fit the trimmed data.
+			curve.xmax_f_e[0] = curve.fit_dataframe_extension["Fit_Distance_Extension"].iloc[-1]
+			curve.xmax_f_e[1] = curve.fit_dataframe_extension["Fit_Time_Extension"].iloc[-1]
+
+			curve.ymax_f_e = fc_ext
+
+			curve.has_fit_e = True
+			curve.trimmed_f_e = True
+
+		if curve.has_fit_r == False and curve.trimmed_r == True and len(curve.dataframe_retraction["Distance_Retraction"]) > 30: # if the curve is not already fit, then fit the trimmed data.
+
+			fc_inflection_point_ret = 0
+			fc_ret = 0
+			max_first_deriv_ret = 0
+
+			for i in range(len(curve.trimmed_first_derivative_dataframe_retraction["Trimmed_First_Derivative"])):
+				if abs(curve.trimmed_first_derivative_dataframe_retraction["Trimmed_First_Derivative"][i]) > max_first_deriv_ret and curve.dataframe_retraction["Force_Retraction"][i] < 80 and curve.dataframe_retraction["Force_Retraction"][i] > 4:
+					fc_inflection_point_ret = i
+					max_first_deriv_ret = abs(curve.trimmed_first_derivative_dataframe_retraction["Trimmed_First_Derivative"][i])
+					fc_ret = curve.dataframe_retraction["Force_Retraction"][i]
+
+			curve.fit_dataframe_retraction = pd.DataFrame({"Fit_Force_Retraction": curve.dataframe_retraction["Force_Retraction"][fc_inflection_point_ret : -1],
+								      "Fit_Distance_Retraction": curve.dataframe_retraction["Distance_Retraction"][fc_inflection_point_ret : -1],
+								      "Fit_Time_Retraction": curve.dataframe_retraction["Time_Retraction"][fc_inflection_point_ret : -1]})
+
 			fit_result = fit_eOdijk_F0(curve.fit_dataframe_retraction["Fit_Distance_Retraction"], curve.fit_dataframe_retraction["Fit_Force_Retraction"])
 			curve.precalculated_fit_retraction = pd.DataFrame({"Precalculated_Fit_Force_Retraction": fit_result[2], "Precalculated_Fit_Distance_Retraction": curve.fit_dataframe_retraction["Fit_Distance_Retraction"], "Precalculated_Fit_Time_Retraction": curve.fit_dataframe_retraction["Fit_Time_Retraction"]})
 
@@ -1950,7 +1988,14 @@ def auto_force_scale() -> None:
 			curve.fit_parameters["S_ret"] = [fit_result[0][2], fit_result[1][2]]
 			curve.fit_parameters["F0_ret"] = [fit_result[0][3], fit_result[1][3]]
 
+			curve.xmin_f_r[0] = curve.fit_dataframe_retraction["Fit_Distance_Retraction"].iloc[-1]
+			curve.xmin_f_r[1] = curve.fit_dataframe_retraction["Fit_Time_Retraction"].iloc[-1]
+			curve.xmax_f_r[0] = curve.fit_dataframe_retraction["Fit_Distance_Retraction"].iloc[0]
+			curve.xmax_f_r[1] = curve.fit_dataframe_retraction["Fit_Time_Retraction"].iloc[0]
+			curve.ymax_f_r = fc_ret
+
 			curve.has_fit_r = True
+			curve.trimmed_f_r = True
 
 		if curve.has_fit_e == True:
 			contour_lengths.append(curve.fit_parameters["Lc_ext"][0])
@@ -1963,7 +2008,7 @@ def auto_force_scale() -> None:
 	
 	for curve in reference_curves:
 
-		if len(curve.dataframe_extension["Distance_Extension"]) > 30:
+		if curve.trimmed_e == True and len(curve.dataframe_extension["Distance_Extension"]) > 30:
 			Lc_space_ext = curve.dataframe_extension["Distance_Extension"] / mean_Lc # Normalise to Lc space
 			for i in range(len(Lc_space_ext)-1):
 				if Lc_space_ext.iloc[i] <= critical_Lc and Lc_space_ext.iloc[i+1] > critical_Lc:
@@ -1973,7 +2018,7 @@ def auto_force_scale() -> None:
 					force_correction_factor_ext = 110/force_at_critical_lc_ext
 					force_corrections.append(force_correction_factor_ext)
 
-		if len(curve.dataframe_retraction["Distance_Retraction"]) > 30:
+		if curve.trimmed_r == True and len(curve.dataframe_retraction["Distance_Retraction"]) > 30:
 			Lc_space_ret = curve.dataframe_retraction["Distance_Retraction"] / mean_Lc # Normalise to Lc space
 			for i in range(len(Lc_space_ret)-1):
 				if Lc_space_ret.iloc[i] <= critical_Lc and Lc_space_ret.iloc[i+1] > critical_Lc:
@@ -1990,12 +2035,18 @@ def auto_force_scale() -> None:
 	# apply the force correction to every selected curve.
 	for curve in GLOBALVARS.selected_files:
 		curve.processed_dataframe["Processed_Force"] = curve.processed_dataframe["Processed_Force"] * mean_force_correction
-		curve.dataframe_extension["Force_Extension"] = curve.dataframe_extension["Force_Extension"] * mean_force_correction
-		curve.dataframe_retraction["Force_Retraction"] = curve.dataframe_retraction["Force_Retraction"] * mean_force_correction
-		curve.fit_dataframe_extension["Fit_Force_Extension"] = curve.fit_dataframe_extension["Fit_Force_Extension"] * mean_force_correction
-		curve.fit_dataframe_retraction["Fit_Force_Retraction"] = curve.fit_dataframe_retraction["Fit_Force_Retraction"] * mean_force_correction
-		curve.precalculated_fit_extension["Precalculated_Fit_Force_Extension"] = curve.precalculated_fit_extension["Precalculated_Fit_Force_Extension"] * mean_force_correction
-		curve.precalculated_fit_retraction["Precalculated_Fit_Force_Retraction"] = curve.precalculated_fit_retraction["Precalculated_Fit_Force_Retraction"] * mean_force_correction
+		if curve.trimmed_e == True and len(curve.dataframe_extension["Distance_Extension"]) > 30:
+			curve.dataframe_extension["Force_Extension"] = curve.dataframe_extension["Force_Extension"] * mean_force_correction
+		if curve.trimmed_r == True and len(curve.dataframe_retraction["Distance_Retraction"]) > 30:
+			curve.dataframe_retraction["Force_Retraction"] = curve.dataframe_retraction["Force_Retraction"] * mean_force_correction
+		if curve.trimmed_e == True and curve.trimmed_f_e == True and len(curve.fit_dataframe_extension["Fit_Distance_Extension"]) > 30:
+			curve.fit_dataframe_extension["Fit_Force_Extension"] = curve.fit_dataframe_extension["Fit_Force_Extension"] * mean_force_correction
+		if curve.trimmed_r == True and curve.trimmed_f_r == True and len(curve.fit_dataframe_retraction["Fit_Distance_Retraction"]) > 30:
+			curve.fit_dataframe_retraction["Fit_Force_Retraction"] = curve.fit_dataframe_retraction["Fit_Force_Retraction"] * mean_force_correction
+		if curve.has_fit_e == True:
+			curve.precalculated_fit_extension["Precalculated_Fit_Force_Extension"] = curve.precalculated_fit_extension["Precalculated_Fit_Force_Extension"] * mean_force_correction
+		if curve.has_fit_r == True:
+			curve.precalculated_fit_retraction["Precalculated_Fit_Force_Retraction"] = curve.precalculated_fit_retraction["Precalculated_Fit_Force_Retraction"] * mean_force_correction
 		curve.first_derivative_dataframe["First_Derivative"] = curve.first_derivative_dataframe["First_Derivative"] * mean_force_correction
 		curve.second_derivative_dataframe["Second_Derivative"] = curve.second_derivative_dataframe["Second_Derivative"] * mean_force_correction
 		curve.is_force_scaled = True
@@ -2230,7 +2281,7 @@ def supercoiling_density_estimation() -> None:
 			if curve in GLOBALVARS.selected_files:	
 				auto_split_and_trim(curve)
 
-		if curve.has_fit_e == False and len(curve.dataframe_extension["Distance_Extension"]) > 30: # if the curve is not already fit, then fit the trimmed data.
+		if curve.trimmed_e == True and curve.has_fit_e == False and len(curve.dataframe_extension["Distance_Extension"]) > 30: # if the curve is not already fit, then fit the trimmed data.
 			fit_result = fit_eOdijk_F0(curve.fit_dataframe_extension["Fit_Distance_Extension"], curve.fit_dataframe_extension["Fit_Force_Extension"])
 			curve.precalculated_fit_extension = pd.DataFrame({"Precalculated_Fit_Force_Extension": fit_result[2], "Precalculated_Fit_Distance_Extension": curve.fit_dataframe_extension["Fit_Distance_Extension"], "Precalculated_Fit_Time_Extension": curve.fit_dataframe_extension["Fit_Time_Extension"]})
 
@@ -2241,7 +2292,7 @@ def supercoiling_density_estimation() -> None:
 
 			curve.has_fit_e = True
 
-		if curve.has_fit_r == False and len(curve.dataframe_retraction["Distance_Retraction"]) > 30: # if the curve is not already fit, then fit the trimmed data.
+		if curve.trimmed_r == True and curve.has_fit_r == False and len(curve.dataframe_retraction["Distance_Retraction"]) > 30: # if the curve is not already fit, then fit the trimmed data.
 			fit_result = fit_eOdijk_F0(curve.fit_dataframe_retraction["Fit_Distance_Retraction"], curve.fit_dataframe_retraction["Fit_Force_Retraction"])
 			curve.precalculated_fit_retraction = pd.DataFrame({"Precalculated_Fit_Force_Retraction": fit_result[2], "Precalculated_Fit_Distance_Retraction": curve.fit_dataframe_retraction["Fit_Distance_Retraction"], "Precalculated_Fit_Time_Retraction": curve.fit_dataframe_retraction["Fit_Time_Retraction"]})
 
