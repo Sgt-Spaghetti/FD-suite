@@ -918,11 +918,11 @@ def toggle_time() -> None:
 					GLOBALVARS.active_file.xmax_e[0] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmax_e]
 					GLOBALVARS.active_file.xmax_e[2] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmax_e]
 				if GLOBALVARS.active_file.xmin_r[1] != GLOBALVARS.active_file.xmin_r[3]:
-					GLOBALVARS.active_file.xmin_r[0] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmin_r]
-					GLOBALVARS.active_file.xmin_r[2] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmin_r]
+					GLOBALVARS.active_file.xmin_r[0] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmax_r]
+					GLOBALVARS.active_file.xmin_r[2] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmax_r]
 				if GLOBALVARS.active_file.xmax_r[1] != GLOBALVARS.active_file.xmax_r[3]:
-					GLOBALVARS.active_file.xmax_r[0] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmax_r]
-					GLOBALVARS.active_file.xmax_r[2] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmax_r]
+					GLOBALVARS.active_file.xmax_r[0] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmin_r]
+					GLOBALVARS.active_file.xmax_r[2] = GLOBALVARS.active_file.processed_dataframe["Processed_Distance"][index_xmin_r]
 
 				if variable_radio_buttons.get == "extension":
 					scale_select_max_time.set(GLOBALVARS.active_file.xmax_e[0])
