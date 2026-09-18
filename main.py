@@ -2493,6 +2493,15 @@ def find_peak() -> None:
 		update_trim_entries_ui()
 		replot_canvas()
 
+def plot_reference_curves_overlaid() -> None:
+	for curve in GLOBALVARS.selected_files:
+		if curve.reference == True:
+			plt.plot(curve.processed_dataframe["Processed_Distance"], curve.processed_dataframe["Processed_Force"])
+	plt.xlabel("Distance (\u03bcm)")
+	plt.ylabel("Force (pN)")
+	plt.show()
+	plt.close()
+
 '''
  |------------------|
  |  GUI management  |
@@ -2551,6 +2560,7 @@ calibration_menu.add_command(label='Calculate Supercoiling Density',command=supe
 
 view_menu = Menu(menubar)
 view_menu.add_command(label='Distance Vs Time',command=plot_distance_time)
+view_menu.add_command(label='Overlay References',command=plot_reference_curves_overlaid)
 view_menu.add_command(label='Toggle First Derivative',command=toggle_first_derivative)
 view_menu.add_command(label='Toggle Second Derivative',command=toggle_second_derivative)
 
