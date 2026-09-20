@@ -73,6 +73,9 @@ class FD():
 		self.trimmed_f_r = False
 		self.has_fit_e: bool = False
 		self.has_fit_r: bool = False
+
+		self.supercoiling_force: float = 70.0
+
 		self.baseline: bool = False
 		self.reference: bool = False
 		self.is_baseline_subtracted: bool = False
@@ -434,7 +437,7 @@ class FD():
 		width: int = canvas_graph_display.winfo_width()
 		height: int = canvas_graph_display.winfo_height()
 		if GLOBALVARS.show_first_deriv == False:
-			fig, ax = plt.subplots(2,1,figsize=(width/100, height/100))
+			fig, ax = plt.subplots(1,1,figsize=(width/100, height/100))
 			fig.suptitle(self.name)
 			if variable_radio_buttons_view.get() == "extension":
 				if self.plot_time == True:
@@ -1265,6 +1268,9 @@ def replot_canvas(expanded_graph = False) -> None:
 		GLOBALVARS.active_file.plot(expanded_graph)
 		GLOBALVARS.graph_image = tk.PhotoImage(file="TEMP_PLOT.png")
 		canvas_graph_display.create_image(0,0,image=GLOBALVARS.graph_image, anchor="nw")
+
+		sigma_force_display.delete(0,tk.END)
+		sigma_force_display.insert(0,str(float("%.1g" % GLOBALVARS.active_file.supercoiling_force)))
 
 		if GLOBALVARS.active_file.sigma_e != -100 and variable_radio_buttons_view.get() == "extension":
 			sigma_display.config(state="normal")
@@ -2269,6 +2275,9 @@ def supercoiling_density_estimation() -> None:
 	def formula(relative_length_via_lc) -> float:
 		return -1.04141820566195*relative_length_via_lc+1.10074780083851
 
+	def formula_low_forces(delta_distance, Force) -> float:
+		return delta_distance*(5.50885*np.e**(-Force/2.39114) + 12.83066*np.e**(-Force/76.8806) - 3.64267)
+
 	reference_curves = []
 	contour_lengths = []	
 	
@@ -2331,52 +2340,118 @@ def supercoiling_density_estimation() -> None:
 	offset_factor = np.mean(ref_sigma_values) # Offset, sigma 0 should give 0
 
 	for curve in GLOBALVARS.selected_files:
-		if curve.trimmed_e == True and curve.dataframe_extension["Force_Extension"].iloc[-1] >= 70:
-			force_index = 0
-			for i in range(len(curve.dataframe_extension["Force_Extension"])):
-				if curve.dataframe_extension["Force_Extension"].iloc[i] >= 70 and curve.dataframe_extension["Force_Extension"].iloc[i-1] < 70:
-					force_index = i
-			distance_at_70 = curve.dataframe_extension["Distance_Extension"].iloc[force_index]
-			curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
-
-		if curve.trimmed_r == True and curve.dataframe_retraction["Force_Retraction"].iloc[0] >= 70:
-			force_index = 0
-			for i in range(len(curve.dataframe_retraction["Force_Retraction"])):
-				if curve.dataframe_retraction["Force_Retraction"].iloc[i] <= 70 and curve.dataframe_retraction["Force_Retraction"].iloc[i-1] > 70:
-					force_index = i
-			distance_at_70 = curve.dataframe_retraction["Distance_Retraction"].iloc[force_index]
-			curve.sigma_r = formula((distance_at_70 / mean_Lc))-offset_factor
-
-		# Otherwise, try to crudly and temporarily split
-		if curve.trimmed_e == False and curve.trimmed_r == False: # Do not save this temporary trim
-			inflection_point = 0
-			max_force = 0
-			for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
-				if curve.processed_dataframe["Processed_Force"].iloc[i] > max_force and curve.processed_dataframe["Processed_Force"].iloc[i] > curve.processed_dataframe["Processed_Force"].iloc[i+1]:	
-					max_force = curve.processed_dataframe["Processed_Force"].iloc[i]
-					inflection_point = i
-			
-			force_ext = curve.processed_dataframe["Processed_Force"][0:inflection_point]
-			time_ext = curve.processed_dataframe["Processed_Time"][0:inflection_point]
-			dist_ext = curve.processed_dataframe["Processed_Distance"][0:inflection_point]
-			force_ret = curve.processed_dataframe["Processed_Force"][inflection_point:-1]
-			time_ret = curve.processed_dataframe["Processed_Time"][inflection_point:-1]
-			dist_ret = curve.processed_dataframe["Processed_Distance"][inflection_point:-1]
-
-			if force_ext.iloc[-1] >= 70:
-				for i in range(len(force_ext)):
-					if force_ext.iloc[i] >= 70 and force_ext.iloc[i-1] < 70:
+		if curve.supercoiling_force == 70:
+			if curve.trimmed_e == True and curve.dataframe_extension["Force_Extension"].iloc[-1] >= 70:
+				force_index = 0
+				for i in range(len(curve.dataframe_extension["Force_Extension"])):
+					if curve.dataframe_extension["Force_Extension"].iloc[i] >= 70 and curve.dataframe_extension["Force_Extension"].iloc[i-1] < 70:
 						force_index = i
-				distance_at_70 = dist_ext.iloc[force_index]
+				distance_at_70 = curve.dataframe_extension["Distance_Extension"].iloc[force_index]
 				curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
 
-			if force_ret.iloc[0] >= 70:
-				for i in range(len(force_ret)):
-					if force_ret.iloc[i] <= 70 and force_ret.iloc[i-1] > 70:
+			if curve.trimmed_r == True and curve.dataframe_retraction["Force_Retraction"].iloc[0] >= 70:
+				force_index = 0
+				for i in range(len(curve.dataframe_retraction["Force_Retraction"])):
+					if curve.dataframe_retraction["Force_Retraction"].iloc[i] <= 70 and curve.dataframe_retraction["Force_Retraction"].iloc[i-1] > 70:
 						force_index = i
-				distance_at_70 = dist_ret.iloc[force_index]
+				distance_at_70 = curve.dataframe_retraction["Distance_Retraction"].iloc[force_index]
 				curve.sigma_r = formula((distance_at_70 / mean_Lc))-offset_factor
+
+			# Otherwise, try to crudly and temporarily split
+			if curve.trimmed_e == False and curve.trimmed_r == False: # Do not save this temporary trim
+				inflection_point = 0
+				max_force = 0
+				for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
+					if curve.processed_dataframe["Processed_Force"].iloc[i] > max_force and curve.processed_dataframe["Processed_Force"].iloc[i] > curve.processed_dataframe["Processed_Force"].iloc[i+1]:	
+						max_force = curve.processed_dataframe["Processed_Force"].iloc[i]
+						inflection_point = i
+				
+				force_ext = curve.processed_dataframe["Processed_Force"][0:inflection_point]
+				time_ext = curve.processed_dataframe["Processed_Time"][0:inflection_point]
+				dist_ext = curve.processed_dataframe["Processed_Distance"][0:inflection_point]
+				force_ret = curve.processed_dataframe["Processed_Force"][inflection_point:-1]
+				time_ret = curve.processed_dataframe["Processed_Time"][inflection_point:-1]
+				dist_ret = curve.processed_dataframe["Processed_Distance"][inflection_point:-1]
+
+				if force_ext.iloc[-1] >= 70:
+					for i in range(len(force_ext)):
+						if force_ext.iloc[i] >= 70 and force_ext.iloc[i-1] < 70:
+							force_index = i
+					distance_at_70 = dist_ext.iloc[force_index]
+					curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
+
+				if force_ret.iloc[0] >= 70:
+					for i in range(len(force_ret)):
+						if force_ret.iloc[i] <= 70 and force_ret.iloc[i-1] > 70:
+							force_index = i
+					distance_at_70 = dist_ret.iloc[force_index]
+					curve.sigma_r = formula((distance_at_70 / mean_Lc))-offset_factor
+
+		else: # Trying to find sigma at a non-standard low (5-30pN) force range
+			ref_distances = []
+			for ref_curve in reference_curves:
+				if ref_curve.trimmed_e == True and ref_curve.dataframe_extension["Force_Extension"].iloc[-1] >= curve.supercoiling_force:
+					force_index = 0
+					for i in range(len(ref_curve.dataframe_extension["Force_Extension"])):
+						if ref_curve.dataframe_extension["Force_Extension"].iloc[i] >= curve.supercoiling_force and ref_curve.dataframe_extension["Force_Extension"].iloc[i-1] < curve.supercoiling_force:
+							force_index = i
+					ref_distances.append(ref_curve.dataframe_extension["Distance_Extension"][force_index] / mean_Lc)
+
+				if ref_curve.trimmed_r == True and ref_curve.dataframe_retraction["Force_Retraction"].iloc[0] >= curve.supercoiling_force:
+					force_index = 0
+					for i in range(len(ref_curve.dataframe_retraction["Force_Retraction"])):
+						if ref_curve.dataframe_retraction["Force_Retraction"].iloc[i] <= curve.supercoiling_force and ref_curve.dataframe_retraction["Force_Retraction"].iloc[i-1] > curve.supercoiling_force:
+							force_index = i
+					ref_distances.append(ref_curve.dataframe_retraction["Distance_Retraction"].iloc[force_index] / mean_Lc)
+
+			mean_ref_distance = np.mean(ref_distances)
 	
+			if curve.trimmed_e == True and curve.dataframe_extension["Force_Extension"].iloc[-1] >= curve.supercoiling_force:
+				force_index = 0
+				for i in range(len(curve.dataframe_extension["Force_Extension"])):
+					if curve.dataframe_extension["Force_Extension"].iloc[i] >= curve.supercoiling_force and curve.dataframe_extension["Force_Extension"].iloc[i-1] < curve.supercoiling_force:
+						force_index = i
+				distance_at_low_force = curve.dataframe_extension["Distance_Extension"].iloc[force_index]
+				curve.sigma_e = formula_low_forces(mean_ref_distance - (distance_at_low_force/mean_Lc), curve.supercoiling_force)
+
+			if curve.trimmed_r == True and curve.dataframe_retraction["Force_Retraction"].iloc[0] >= curve.supercoiling_force:
+				force_index = 0
+				for i in range(len(curve.dataframe_retraction["Force_Retraction"])):
+					if curve.dataframe_retraction["Force_Retraction"].iloc[i] <= curve.supercoiling_force and curve.dataframe_retraction["Force_Retraction"].iloc[i-1] > curve.supercoiling_force:
+						force_index = i
+				distance_at_low_force = curve.dataframe_retraction["Distance_Retraction"].iloc[force_index]
+				curve.sigma_r = formula_low_forces(mean_ref_distance - (distance_at_low_force / mean_Lc), curve.supercoiling_force)
+
+			# Otherwise, try to crudly and temporarily split
+			if curve.trimmed_e == False and curve.trimmed_r == False: # Do not save this temporary trim
+				inflection_point = 0
+				max_force = 0
+				for i in range(len(curve.processed_dataframe["Processed_Time"])-1):
+					if curve.processed_dataframe["Processed_Force"].iloc[i] > max_force and curve.processed_dataframe["Processed_Force"].iloc[i] > curve.processed_dataframe["Processed_Force"].iloc[i+1]:	
+						max_force = curve.processed_dataframe["Processed_Force"].iloc[i]
+						inflection_point = i
+				
+				force_ext = curve.processed_dataframe["Processed_Force"][0:inflection_point]
+				time_ext = curve.processed_dataframe["Processed_Time"][0:inflection_point]
+				dist_ext = curve.processed_dataframe["Processed_Distance"][0:inflection_point]
+				force_ret = curve.processed_dataframe["Processed_Force"][inflection_point:-1]
+				time_ret = curve.processed_dataframe["Processed_Time"][inflection_point:-1]
+				dist_ret = curve.processed_dataframe["Processed_Distance"][inflection_point:-1]
+
+				if force_ext.iloc[-1] >= curve.supercoiling_force:
+					for i in range(len(force_ext)):
+						if force_ext.iloc[i] >= curve.supercoiling_force and force_ext.iloc[i-1] < curve.supercoiling_force:
+							force_index = i
+					distance_at_low_force = dist_ext.iloc[force_index]
+					curve.sigma_e = formula_low_forces(mean_ref_distance - (distance_at_low_force / mean_Lc), curve.supercoiling_force)
+
+				if force_ret.iloc[0] >= curve.supercoiling_force:
+					for i in range(len(force_ret)):
+						if force_ret.iloc[i] <=  curve.supercoiling_force and force_ret.iloc[i-1] > curve.supercoiling_force:
+							force_index = i
+					distance_at_low_force = dist_ret.iloc[force_index]
+					curve.sigma_r = formula_low_forces(mean_ref_distance - (distance_at_low_force / mean_Lc), curve.supercoiling_force)
+
 	replot_canvas()	
 		
 
@@ -2501,6 +2576,10 @@ def plot_reference_curves_overlaid() -> None:
 	plt.ylabel("Force (pN)")
 	plt.show()
 	plt.close()
+
+def update_sigma_force() -> None:
+	if GLOBALVARS.active_file != None:
+		GLOBALVARS.active_file.supercoiling_force = float(sigma_force_display.get())
 
 '''
  |------------------|
@@ -2747,9 +2826,15 @@ F0_display = tk.Entry(master=frame_input_buttons, text="", state="readonly",widt
 F0_display.grid(row=6, column=3, sticky=tk.EW)
 
 Fit_Button = Button(master=frame_input_buttons, text="Fit", command=fit)
-Fit_Button.grid(row=9, column=1, pady=(20,0))
+Fit_Button.grid(row=9, column=1, pady=(20,20))
 
-tk.Label(master=frame_input_buttons, text="Sigma:").grid(row=10, column=2, sticky=tk.E)
+tk.Label(master=frame_input_buttons, text="\u03C3 (@ Force):").grid(row=10, column=0, sticky=tk.E)
+sigma_force_display = tk.Entry(master=frame_input_buttons, width=6)
+sigma_force_display.insert(0,"70")
+sigma_force_display.grid(row=10 , column=1)
+tk.Button(master=frame_input_buttons, text="Update", command=update_sigma_force).grid(row=10, column=2, sticky=tk.W)
+
+#tk.Label(master=frame_input_buttons, text="Sigma:").grid(row=10, column=3, sticky=tk.E)
 sigma_display = tk.Entry(master=frame_input_buttons, text="", state="readonly",width=6)
 sigma_display.grid(row=10 , column=3, sticky=tk.EW)
 
