@@ -2373,19 +2373,21 @@ def supercoiling_density_estimation() -> None:
 				time_ret = curve.processed_dataframe["Processed_Time"][inflection_point:-1]
 				dist_ret = curve.processed_dataframe["Processed_Distance"][inflection_point:-1]
 
-				if force_ext.iloc[-1] >= 70:
-					for i in range(len(force_ext)):
-						if force_ext.iloc[i] >= 70 and force_ext.iloc[i-1] < 70:
-							force_index = i
-					distance_at_70 = dist_ext.iloc[force_index]
-					curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
+				if len(force_ext) > 30:
+					if force_ext.iloc[-1] >= 70:
+						for i in range(len(force_ext)):
+							if force_ext.iloc[i] >= 70 and force_ext.iloc[i-1] < 70:
+								force_index = i
+						distance_at_70 = dist_ext.iloc[force_index]
+						curve.sigma_e = formula((distance_at_70 / mean_Lc))-offset_factor
 
-				if force_ret.iloc[0] >= 70:
-					for i in range(len(force_ret)):
-						if force_ret.iloc[i] <= 70 and force_ret.iloc[i-1] > 70:
-							force_index = i
-					distance_at_70 = dist_ret.iloc[force_index]
-					curve.sigma_r = formula((distance_at_70 / mean_Lc))-offset_factor
+				if len(force_ret) > 30:
+					if force_ret.iloc[0] >= 70:
+						for i in range(len(force_ret)):
+							if force_ret.iloc[i] <= 70 and force_ret.iloc[i-1] > 70:
+								force_index = i
+						distance_at_70 = dist_ret.iloc[force_index]
+						curve.sigma_r = formula((distance_at_70 / mean_Lc))-offset_factor
 
 		else: # Trying to find sigma at a non-standard low (5-30pN) force range
 			ref_distances = []
