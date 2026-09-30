@@ -2276,7 +2276,7 @@ def supercoiling_density_estimation() -> None:
 		return -1.04141820566195*relative_length_via_lc+1.10074780083851
 
 	def formula_low_forces(delta_distance, Force) -> float:
-		return delta_distance*(5.50885*np.e**(-Force/2.39114) + 12.83066*np.e**(-Force/76.8806) - 3.64267)
+		return delta_distance*(5.50885*np.e**(-Force/2.39114) + 12.83066*np.e**(-Force/76.8806) - 3.64267) +  (-0.09248 * np.e**(-Force / -170.3372)+ 0.07847 * np.e**(-Force / 1.7566)+ 0.11627)
 
 	reference_curves = []
 	contour_lengths = []	
