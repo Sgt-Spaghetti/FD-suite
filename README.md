@@ -44,6 +44,14 @@ alias fdsuite="python3 ~/path/to/program/main.py"
 
 ## A Standard Proposed Workflow
 
+- During a session, at least 3 reference curves should be taken per DNA construct investigated. These are torsionally constrained, non-supercoiled curves which reach the end of the overstretching plateau. Save the frame rate and extension speed used in the session (or per curve), as this data is used for smoothing when calculating the derivatives.
+- HDF5 files from a Lumick's M- or C-Trap should be exported and saved on the local computer.
+- Each session should be baseline subtracted if a systematic baseline drift error is observed when stretching "empty" bead pairs, as has been seen in some Optical Tweezer setups.
+- Each reference curve should be split into extension and retraction curves. These curves should then be fit.
+- The fit data from each reference curve should then be used to force-calibrate every curve in the session.
+- All curves in the session can then be trimmed and fit. Reference curves should be re-trimmed and fit as force scaling can affect Lp and S.
+- The supercoiling density estimations for the curves in the session can be calculated.
+
 ## First Steps
 
 Once the program is launched, the first screen you are greeted with will ask you to confirm some core settings used throughout the measurement session. It is important to know the framerate and the extension speed used for the C-Trap's data acquisition. We would recommend a framerate of at least 100fps, with an extension speed between 0.3 and 0.15 micrometers per second. Here, you may also change data the program will used when processing the HDF5 files, which will be expanded on in the next section.
@@ -70,7 +78,7 @@ To load data into the program:
 > Note, every data acquisition session should include at least 3 good quality reference curves, where torsionally constrained DNA fragments are stretched to the end of overstretching (around $150$pN). These curves should be used later for per-session force correction and may also be used for automatic supercoiling density estimation. A few baselines should also be included, in which bead pairs with no DNA are "stretched", as some instruments may have systematic discrepancies in force measurements which should be corrected for.
 
 5. For each reference curve selected in the session, select the curve from the "selected files" panel and toggle it as a reference, using the "Selection" menu drop-down followed by the "Mark Curve as Reference". The name of the curve should now be green in the "selected files" panel.
-5. For each baseline selected in the session, select the curve from the "selected files" panel and toggle it as a reference, using the "Selection" menu drop-down followed by the "Mark Curve as Baseline". The name of the curve should now be red in the "selected files" panel.
+6. For each baseline selected in the session, select the curve from the "selected files" panel and toggle it as a reference, using the "Selection" menu drop-down followed by the "Mark Curve as Baseline". The name of the curve should now be red in the "selected files" panel.
 
 ## Baseline Subtraction
 
@@ -146,6 +154,8 @@ Every curve in the session should now be force scaled, such that the overstretch
 ## After force scaling and Supercoiling Density Estimation
 
 Each curve can now be trimmed and fit. If a session includes reference curves, the supercoiling density of a curve can be estimated by measuring its distance in Lc space at 70pN. Using a calibration plot derived from data presented in Leger et al. 1999 [^1], the distance at 70pN will be converted to supercoiling density and this is the most accurate method for supercoiling density estimation. However, should a curve not reach 70pN, any distance from 5pN to 30pN can be used instead. These distances use a secondary internal calibration plot, which converts lower forces to supercoiling density using data derived from many lambda-DNA curves at different supercoiling densities which were themselves determined using the distance at 70pN method.
+
+> Supercoiling density estimation requires reference curves, as a tiny subtractive correction factor ($\approx 5x10^{-3}$) is applied to all curves in order to zero the estimated supercoiling density of the reference curves. This is because there can be small variations in the twist-stretch coupling region even if all other areas of the curves overlap after force-scaling in Lc space, which may derive from small differences in local heating.
 
 ## Exporting Data
 
