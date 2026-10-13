@@ -157,6 +157,8 @@ Each curve can now be trimmed and fit. If a session includes reference curves, t
 
 > Supercoiling density estimation requires reference curves, as a tiny subtractive correction factor ($\approx 5x10^{-3}$) is applied to all curves in order to zero the estimated supercoiling density of the reference curves. This is because there can be small variations in the twist-stretch coupling region even if all other areas of the curves overlap after force-scaling in Lc space, which may derive from small differences in local heating.
 
+To determine the supercoiling density of a curve, once the session has been force calibrated with at least 3 reference curves, from the "Calibration" drop-down menu select "Calculate Supercoiling Density". This will attempt to automatically determine the supercoiling density of all the curves in the session. If a non 70pN force is desired (between 5 and 30pN), input the desired force in the text box which states "$\sigma$ (@ force):" and press the "Update" button to the right. Then, simply repeat the "Calibration" drop-down menu selection of "Calculate Supercoiling Density" once more.
+
 ## Exporting Data
 
 In the top menu, hover over the "File" drop-down and select "Export to CSV". A CSV file for every curve in the "selected files" panel will be exported to a folder called "FD-DATA", which is created within the directory the original HDF5 files are kept. This CSV file will contain all the data generated from the program, including:

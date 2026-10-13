@@ -1270,7 +1270,7 @@ def replot_canvas(expanded_graph = False) -> None:
 		canvas_graph_display.create_image(0,0,image=GLOBALVARS.graph_image, anchor="nw")
 
 		sigma_force_display.delete(0,tk.END)
-		sigma_force_display.insert(0,str(float("%.1g" % GLOBALVARS.active_file.supercoiling_force)))
+		sigma_force_display.insert(0,str(float("%.4g" % GLOBALVARS.active_file.supercoiling_force)))
 
 		if GLOBALVARS.active_file.sigma_e != -100 and variable_radio_buttons_view.get() == "extension":
 			sigma_display.config(state="normal")
@@ -2065,9 +2065,9 @@ def expand_graph() -> None:
 	replot_canvas(True)
 
 def export_data() -> None:
-	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": [], "Fc-e": [], "Fc-r": [], "sigma_e" : []}
+	fit_params: dict = {"File": [], "Lp-e": [], "Lc-e": [], "S-e": [], "F0-e": [], "Lp-r": [], "Lc-r": [], "S-r": [], "F0-r": [], "Fc-e": [], "Fc-r": [], "sigma_e" : [], "sigma_r" : [] }
 	for file in GLOBALVARS.selected_files:
-		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.precalculated_fit_extension, file.precalculated_fit_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"sigma_e": [file.sigma_e]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]}),pd.DataFrame({"x_variable": [x_variable_combo.get()]}) ,pd.DataFrame({"y_variable": [y_variable_combo.get()]})], axis = 1)
+		output_data = pd.concat([file.dataframe, file.processed_dataframe, file.dataframe_extension, file.dataframe_retraction, file.first_derivative_dataframe, file.second_derivative_dataframe, file.fit_dataframe_extension, file.fit_dataframe_retraction, file.precalculated_fit_extension, file.precalculated_fit_retraction, file.fit_parameters, pd.DataFrame({"Fc_e": [file.fc_e]}), pd.DataFrame({"Fc_r": [file.fc_r]}), pd.DataFrame({"sigma_e": [file.sigma_e]}), pd.DataFrame({"sigma_r": [file.sigma_r]}), pd.DataFrame({"is_baseline": [file.baseline]}), pd.DataFrame({"is_reference": [file.reference]}), pd.DataFrame({"is_baseline_subtracted": [file.is_baseline_subtracted]}), pd.DataFrame({"is_force_scaled": [file.is_force_scaled]}),pd.DataFrame({"x_variable": [x_variable_combo.get()]}) ,pd.DataFrame({"y_variable": [y_variable_combo.get()]})], axis = 1)
 		output_data.to_csv(os.path.join(GLOBALVARS.output_directory, file.name+".csv"), index=False)
 
 		if file.has_fit_e == True:
@@ -2084,6 +2084,7 @@ def export_data() -> None:
 			fit_params["Fc-e"].append(file.fc_e)
 			fit_params["Fc-r"].append(file.fc_r)
 			fit_params["sigma_e"].append(file.sigma_e)
+			fit_params["sigma_r"].append(file.sigma_r)
 
 	out = pd.DataFrame(fit_params)
 	out.to_csv(os.path.join(GLOBALVARS.output_directory,"FIT_PARAMETERS.csv"), index=False)
@@ -2156,8 +2157,12 @@ def auto_fc() -> None:
 			xmax = x_data[ifc]
 			GLOBALVARS.active_file.fc_e = force_data[ifc]
 		else:
-			xmin = x_data[ifc]
-			GLOBALVARS.active_file.fc_r = force_data[ifc]
+			if GLOBALVARS.active_file.plot_time == True:
+				xmin = x_data[ifc]
+				GLOBALVARS.active_file.fc_r = force_data[ifc]
+			else:
+				xmax = x_data[ifc]
+				GLOBALVARS.active_file.fc_r = force_data[ifc]
 
 		
 		if  variable_radio_buttons_view.get() == "full":
@@ -2276,7 +2281,15 @@ def supercoiling_density_estimation() -> None:
 		return -1.04141820566195*relative_length_via_lc+1.10074780083851
 
 	def formula_low_forces(delta_distance, Force) -> float:
-		return delta_distance*(5.50885*np.e**(-Force/2.39114) + 12.83066*np.e**(-Force/76.8806) - 3.64267) +  (-0.09248 * np.e**(-Force / -170.3372)+ 0.07847 * np.e**(-Force / 1.7566)+ 0.11627)
+		if Force > 30 or Force < 5:
+			print("WARNING: LOW FORCE SUPERCOILING APPROXIMATION ONLY VALID BETWEEN 5-30pN")
+		gradient = (5.01132*np.exp(-Force/2.35927) + 12.29473*np.exp(-Force/67.82633) - 2.91078)
+		if Force < 10:
+			intercept = 0.01840421
+		else:
+			intercept = 0.02458 - (6.17579/10000) * Force
+
+		return delta_distance*gradient - intercept
 
 	reference_curves = []
 	contour_lengths = []	
@@ -2391,6 +2404,8 @@ def supercoiling_density_estimation() -> None:
 
 		else: # Trying to find sigma at a non-standard low (5-30pN) force range
 			ref_distances = []
+			if len(reference_curves) < 3:
+				print("WARNING: AT LEAST 3 REFERENCE CURVES ARE RECOMMENDED")
 			for ref_curve in reference_curves:
 				if ref_curve.trimmed_e == True and ref_curve.dataframe_extension["Force_Extension"].iloc[-1] >= curve.supercoiling_force:
 					force_index = 0
